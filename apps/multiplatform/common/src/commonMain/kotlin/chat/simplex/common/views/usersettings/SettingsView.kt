@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.*
@@ -108,6 +109,23 @@ fun SettingsLayout(
       SettingsActionItem(painterResource(MR.images.ic_ios_share), stringResource(MR.strings.migrate_from_device_to_another_device), { withAuth(generalGetString(MR.strings.auth_open_migration_to_another_device), generalGetString(MR.strings.auth_log_in_using_credential)) { ModalManager.fullscreen.showCustomModal { close -> MigrateFromDeviceView(close) } } }, disabled = stopped)
     }
     SectionDividerSpaced()
+
+    if (chat.simplex.common.views.vibe.vibeStyle) {
+      // Vibe X: its own updates and about, as in Vibe
+      SectionView("VIBE X") {
+        val pending = chat.simplex.common.views.vibe.VibeUpdater.pending.value
+        LaunchedEffect(Unit) { chat.simplex.common.views.vibe.VibeUpdater.load() }
+        SettingsActionItemWithContent(painterResource(MR.images.ic_bigtop_updates), "Updates", showSettingsModal { chat.simplex.common.views.vibe.VibeUpdatesView() }) {
+          if (pending != null) {
+            Text("New", color = chat.simplex.common.views.vibe.VibeColors.red, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            Spacer(Modifier.width(6.dp))
+            Box(Modifier.size(10.dp).clip(androidx.compose.foundation.shape.CircleShape).background(chat.simplex.common.views.vibe.VibeColors.red))
+          }
+        }
+        SettingsActionItem(painterResource(MR.images.ic_info), "About Vibe X", showSettingsModal { chat.simplex.common.views.vibe.VibeAboutView() })
+      }
+      SectionDividerSpaced()
+    }
 
     SectionView(stringResource(MR.strings.advanced_settings)) {
       SettingsActionItem(painterResource(MR.images.ic_wifi_tethering), stringResource(MR.strings.network_and_servers), showCustomModal { _, close -> NetworkAndServersView(close) }, disabled = stopped)

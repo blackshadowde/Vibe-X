@@ -82,11 +82,12 @@ private val pages = listOf(
 
 /** Vibe's welcome (logo, four short pages), with SimpleX's facts. Then "Get started". */
 @Composable
-fun VibeWelcome(chatModel: ChatModel) {
+fun VibeWelcome(chatModel: ChatModel, onDone: (() -> Unit)? = null) {
   val pager = rememberPagerState { pages.size }
   val scope = rememberCoroutineScope()
   val last = pager.currentPage == pages.size - 1
   fun finish() {
+    if (onDone != null) { onDone(); return }
     val user = chatModel.currentUser.value
     appPreferences.onboardingStage.set(if (user == null) OnboardingStage.Step2_CreateProfile else OnboardingStage.OnboardingComplete)
   }
@@ -129,7 +130,7 @@ fun VibeWelcome(chatModel: ChatModel) {
             .padding(horizontal = if (last) 28.dp else 24.dp).animateContentSize(),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Text(if (last) "Get started" else "Next", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+          Text(if (last) (if (onDone != null) "Done" else "Get started") else "Next", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
           Spacer(Modifier.width(8.dp))
           Icon(VibeIcons.ArrowBack, null, Modifier.size(18.dp).graphicsLayer { rotationZ = 180f }, tint = Color.White)
         }

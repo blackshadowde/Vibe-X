@@ -594,6 +594,8 @@ fun VibeHashRow(
 private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, modifier: Modifier) {
   val user = chatModel.currentUser.value ?: return
   val running = chatModel.chatRunning.value
+  // a quiet look for a new Vibe X now and then (at most every 6 hours)
+  LaunchedEffect(Unit) { VibeUpdater.maybeCheck() }
   val status = when (running) {
     true -> "Online"
     false -> "Chat is stopped"
@@ -629,7 +631,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
         },
         contentAlignment = Alignment.Center
       ) {
-        Icon(VibeIcons.Settings, "Settings", tint = VibeColors.onVariant())
+        VibeUpdateDot { Icon(VibeIcons.Settings, "Settings", tint = VibeColors.onVariant()) }
       }
     }
     Box(Modifier.align(Alignment.TopStart).clip(CircleShape).background(VibeColors.surface()).padding(3.dp)) {

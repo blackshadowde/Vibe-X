@@ -24,6 +24,9 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          # full history and tags, for the release notes
+          fetch-depth: 0
 
       - name: Free disk space
         run: |
@@ -76,6 +79,8 @@ jobs:
           sed -i 's/jniLibs.useLegacyPackaging =.*/jniLibs.useLegacyPackaging = true/' android/build.gradle.kts
           sed -i '/^tasks {/Q' android/build.gradle.kts
           sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8/' gradle.properties
+          # the in-app updater compares this build number with the release tag's
+          sed -i "s/^vibe.build=.*/vibe.build=${GITHUB_RUN_NUMBER}/" gradle.properties
           mkdir -p ../../apk-out
           # One ABI per run, like upstream: the core libraries are large and
           # packaging both splits at once is what failed before.
@@ -140,6 +145,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="vibe-x-${VERSION}-${GITHUB_RUN_NUMBER}"
+          # "What's new" for the in-app updater: the changes since the last release
+          PREV=$(git tag -l 'vibe-x-*' --sort=-creatordate | head -1)
+          {
+            echo "### What's new in this update"
+            if [ -n "$PREV" ]; then RANGE="$PREV..HEAD"; else RANGE="-20"; fi
+            git log $RANGE --no-merges --format='- %s' | grep -v -i '^- \(wip\|merge\)' | head -25
+            echo
+            echo "---"
+            echo "Most phones: the arm64-v8a APK. Older 32-bit phones: armeabi-v7a."
+          } > notes.md
+          cat notes.md
           gh release create "$TAG" dist/*.apk -R "$GITHUB_REPOSITORY" \
             --title "Vibe X ${VERSION} (build ${GITHUB_RUN_NUMBER})" \
-            --notes "Most phones: the arm64-v8a APK. Older 32-bit phones: armeabi-v7a."
+            --notes-file notes.md
