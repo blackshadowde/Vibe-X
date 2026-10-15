@@ -2538,6 +2538,10 @@ fun BoxScope.ChatItemsList(
   }
   if (vibeStyle) {
     VibeOverlay()
+    // their status, as a thought bubble under the top bar
+    if (chatInfo is ChatInfo.Direct && chatsCtx.secondaryContextFilter == null) {
+      VibeChatStatusBubble(chatInfo, Modifier.align(Alignment.TopStart).padding(top = topPaddingToContent + 6.dp))
+    }
     if (chatsCtx.secondaryContextFilter == null) {
       VibePeek(chatInfo.id, Modifier.align(Alignment.BottomStart).padding(bottom = composeViewHeight.value + 10.dp))
     }

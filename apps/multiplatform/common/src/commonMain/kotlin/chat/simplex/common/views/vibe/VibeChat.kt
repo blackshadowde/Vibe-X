@@ -65,6 +65,8 @@ fun VibeChatTitle(info: ChatInfo, onAvatar: () -> Unit) {
           Text(line ?: "", fontSize = 12.sp, color = VibeColors.onVariant())
         }
       }
+      // connected: their local time, in the same spot
+      if (line == null && info is ChatInfo.Direct) VibeTheirTime(info.contact.profile.description)
     }
   }
 }

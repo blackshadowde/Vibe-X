@@ -459,10 +459,15 @@ private fun DmTile(chat: Chat) {
           }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-          Icon(VibeIcons.Lock, null, Modifier.size(12.dp), tint = VibeColors.onVariant())
-          Spacer(Modifier.width(4.dp))
+          // their status, when they have one (Discord shows it under the name)
+          val status = (info as? ChatInfo.Direct)?.contact?.profile?.shortDescr?.takeIf { it.isNotBlank() && !pending }
+          if (status == null) {
+            Icon(VibeIcons.Lock, null, Modifier.size(12.dp), tint = VibeColors.onVariant())
+            Spacer(Modifier.width(4.dp))
+          }
           val sub = when {
             pending -> "connecting…"
+            status != null -> status
             info is ChatInfo.Group -> if (info.groupInfo.useRelays) "Channel" else "Group"
             else -> "Encrypted Direct Message"
           }
@@ -681,7 +686,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
     VibeSupport.maybeAsk()
   }
   val status = when (running) {
-    true -> "Online"
+    true -> user.profile.shortDescr?.takeIf { it.isNotBlank() } ?: "Online"
     false -> "Chat is stopped"
     null -> "Connecting…"
   }

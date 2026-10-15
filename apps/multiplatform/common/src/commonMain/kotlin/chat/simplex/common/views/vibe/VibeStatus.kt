@@ -37,6 +37,8 @@ import java.util.*
  * ------------------------------------------------------------------------ */
 
 object VibeStatus {
+  /** Chats whose status bubble you folded away. */
+  val folded = androidx.compose.runtime.mutableStateListOf<String>()
   private val tzLine = Regex("""(?m)^🕓 Time zone: ([A-Za-z_]+(?:/[A-Za-z_\-+0-9]+)*)\s*$""")
 
   fun timeZoneOf(description: String?): String? = description?.let { tzLine.find(it)?.groupValues?.get(1) }
@@ -246,6 +248,37 @@ object VibeDirectory {
           contentAlignment = Alignment.Center
         ) { Text(if (q.isBlank()) "Open the directory" else "Search", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
       }
+    }
+  }
+}
+
+/** "6:42 PM there" (or "· same time as you") under their name, from the time zone in their profile; nothing if they don't share it. */
+@Composable
+fun VibeTheirTime(description: String?) {
+  val tz = VibeStatus.timeZoneOf(description) ?: return
+  var tick by remember { mutableStateOf(0) }
+  LaunchedEffect(tz) {
+    // on the minute, so the clock never lags
+    delay(60_000L - System.currentTimeMillis() % 60_000L)
+    while (true) { tick++; delay(60_000L) }
+  }
+  val clock = remember(tz, tick) { VibeStatus.localTime(tz) } ?: return
+  val mine = remember(tz) { java.util.TimeZone.getTimeZone(tz).getOffset(System.currentTimeMillis()) == java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis()) }
+  Text(if (mine) "$clock · same time as you" else "$clock there", fontSize = 12.sp, color = VibeColors.onVariant(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+}
+
+/** Their status as a thought bubble under the chat's top bar. Tap to fold it away (for this chat, until the app restarts). */
+@Composable
+fun VibeChatStatusBubble(info: ChatInfo.Direct, modifier: Modifier = Modifier) {
+  val status = info.contact.profile.shortDescr?.trim()?.takeIf { it.isNotEmpty() } ?: return
+  val folded = VibeStatus.folded.contains(info.id)
+  androidx.compose.animation.AnimatedVisibility(
+    !folded, modifier,
+    enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.8f),
+    exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.8f)
+  ) {
+    Box(Modifier.padding(start = 28.dp).clip(RoundedCornerShape(18.dp)).clickable { VibeHaptics.selection(); VibeStatus.folded.add(info.id) }) {
+      VibeStatusBubble(status)
     }
   }
 }
