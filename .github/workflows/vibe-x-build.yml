@@ -69,10 +69,31 @@ jobs:
         working-directory: apps/multiplatform
         run: |
           set -o pipefail
-          ./gradlew --no-daemon :android:assembleFossRelease 2>&1 | tee build.log || {
-            grep -E "^e: |error:|FAILURE|What went wrong" -A3 build.log | head -60 | while IFS= read -r line; do echo "::error::$line"; done
-            exit 1
-          }
+          # Same preparations as SimpleX's own scripts/android/build-android.sh:
+          # native libs packaged compressed and extracted on install, and the
+          # optional re-compress task dropped (we sign in the next step).
+          sed -i 's/${extract_native_libs}/true/' android/src/main/AndroidManifest.xml
+          sed -i 's/jniLibs.useLegacyPackaging =.*/jniLibs.useLegacyPackaging = true/' android/build.gradle.kts
+          sed -i '/^tasks {/Q' android/build.gradle.kts
+          sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8/' gradle.properties
+          mkdir -p ../../apk-out
+          # One ABI per run, like upstream: the core libraries are large and
+          # packaging both splits at once is what failed before.
+          for abi in arm64-v8a armeabi-v7a; do
+            [ -f "common/src/commonMain/cpp/android/libs/$abi/libsimplex.so" ] || continue
+            sed -i "s/include(\".*/include(\"$abi\")/" android/build.gradle.kts
+            echo "::group::Build $abi"
+            rm -rf android/build/outputs/apk android/build/intermediates/apk
+            if ! ./gradlew --no-daemon --stacktrace :android:assembleFossRelease 2>&1 | tee build.log; then
+              level=error; [ "$abi" = arm64-v8a ] || level=warning
+              grep -E "^e: |error:|What went wrong|Caused by" -A2 build.log | grep -v "^\s*at " | head -40 | while IFS= read -r line; do echo "::$level::$abi: $line"; done
+              [ "$abi" = arm64-v8a ] && exit 1
+              echo "::endgroup::"; continue
+            fi
+            echo "::endgroup::"
+            cp android/build/outputs/apk/foss/release/android-foss-$abi-release-unsigned.apk ../../apk-out/
+          done
+          ls -la ../../apk-out
 
       - name: Sign
         env:
@@ -92,7 +113,7 @@ jobs:
             ALIAS=vibe
           fi
           VERSION=$(grep '^android.version_name=' apps/multiplatform/gradle.properties | cut -d= -f2)
-          OUT=apps/multiplatform/android/build/outputs/apk/foss/release
+          OUT=apk-out
           mkdir -p dist
           for abi in arm64-v8a armeabi-v7a; do
             IN="$OUT/android-foss-$abi-release-unsigned.apk"
