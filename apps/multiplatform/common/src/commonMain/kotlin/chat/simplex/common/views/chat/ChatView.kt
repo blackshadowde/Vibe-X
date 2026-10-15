@@ -1444,7 +1444,18 @@ fun BoxScope.ChatInfoToolbar(
     searchPlaceholder = searchPlaceholder,
     onSearchValueChanged = onSearchValueChanged,
     searchTrailingContent = searchTrailingContent,
-    buttons = { barButtons.forEach { it() } }
+    buttons = {
+      if (vibeStyle) {
+        // Vibe X: an ongoing call can still be ended here; then the connection dots and the menu
+        if (chatInfo is ChatInfo.Direct && activeCall?.contact?.id == chatInfo.id) {
+          IconButton({ endCall() }) { Icon(painterResource(MR.images.ic_call_end_filled), null, tint = MaterialTheme.colors.error) }
+        }
+        VibeSignalDots(chatInfo)
+        IconButton({ VibeChatMenu.show(chatInfo, onDetails = info, onSearch = { showSearch.value = true }) }) {
+          Icon(MoreVertFilled, stringResource(MR.strings.icon_descr_more_button), tint = VibeColors.onVariant())
+        }
+      } else barButtons.forEach { it() }
+    }
   )
   Box(Modifier.fillMaxWidth().wrapContentSize(Alignment.TopEnd)) {
     val density = LocalDensity.current
