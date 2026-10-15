@@ -39,8 +39,8 @@ fun VibeLiveText(text: String, modifier: Modifier = Modifier) {
       text.startsWith(shown) && text.length > shown.length -> {
         val start = shown.length
         val add = text.length - start
-        // the other side sends about once a second: spread the new letters over it
-        val step = (1000L / max(add, 1)).coerceIn(12L, 70L)
+        // the other side sends about twice a second: spread the new letters over it
+        val step = (420L / max(add, 1)).coerceIn(10L, 55L)
         for (i in start + 1..text.length) {
           shown = text.substring(0, i)
           delay(step)

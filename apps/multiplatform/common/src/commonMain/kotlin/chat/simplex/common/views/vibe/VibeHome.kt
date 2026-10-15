@@ -174,6 +174,7 @@ private fun VibeRailItem(chat: Chat) {
   val muted = chat.chatInfo.chatSettings?.enableNtfs?.let { it != MsgFilter.All } ?: false
   val showMenu = remember { mutableStateOf(false) }
   val inProgress = remember { mutableStateOf(false) }
+  val railScope = rememberCoroutineScope()
   val pill by animateDpAsState(if (active) 30.dp else if (unread > 0) 8.dp else 0.dp, tween(260, easing = FastOutSlowInEasing), label = "pill")
   val radius by animateDpAsState(if (active) 12.dp else 15.dp, tween(280, easing = FastOutSlowInEasing), label = "radius")
   val ring by animateColorAsState(if (active) VibeColors.blurple else Color.Transparent, tween(280), label = "ring")
@@ -193,7 +194,7 @@ private fun VibeRailItem(chat: Chat) {
         .combinedClickable(
           interactionSource = press, indication = null,
           onClick = { VibeRail.selected.value = chat.id },
-          onLongClick = { showMenu.value = true },
+          onLongClick = { VibeChatActions.show(chat) { openVibeChat(chat, railScope) } },
         ),
       contentAlignment = Alignment.Center,
     ) {
@@ -215,14 +216,6 @@ private fun VibeRailItem(chat: Chat) {
         contentAlignment = Alignment.Center,
       ) {
         Text(if (unread > 99) "99+" else "$unread", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-      }
-    }
-    DefaultDropdownMenu(showMenu) {
-      val showMarkRead = chat.chatStats.unreadCount > 0 || chat.chatStats.unreadChat
-      when (val info = chat.chatInfo) {
-        is ChatInfo.Direct -> ContactMenuItems(chat, info.contact, chatModel, showMenu, showMarkRead)
-        is ChatInfo.Group -> GroupMenuItems(chat, info.groupInfo, chatModel, showMenu, inProgress, showMarkRead)
-        else -> {}
       }
     }
   }
@@ -365,7 +358,10 @@ private fun DmTile(chat: Chat) {
         onClick = {
           if (info is ChatInfo.Direct || info is ChatInfo.Group) VibeRail.selected.value = chat.id else openVibeChat(chat, scope)
         },
-        onLongClick = { showMenu.value = true },
+        onLongClick = {
+          if (info is ChatInfo.ContactConnection) showMenu.value = true
+          else VibeChatActions.show(chat) { openVibeChat(chat, scope) }
+        },
       )
   ) {
     Row(Modifier.fillMaxWidth().padding(start = 10.dp, top = 8.dp, bottom = 8.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -401,12 +397,7 @@ private fun DmTile(chat: Chat) {
     }
     DefaultDropdownMenu(showMenu) {
       val showMarkRead = chat.chatStats.unreadCount > 0 || chat.chatStats.unreadChat
-      when (info) {
-        is ChatInfo.Direct -> ContactMenuItems(chat, info.contact, chatModel, showMenu, showMarkRead)
-        is ChatInfo.Group -> GroupMenuItems(chat, info.groupInfo, chatModel, showMenu, inProgress, showMarkRead)
-        is ChatInfo.ContactConnection -> ContactConnectionMenuItems(chat.remoteHostId, info, chatModel, showMenu)
-        else -> {}
-      }
+      if (info is ChatInfo.ContactConnection) ContactConnectionMenuItems(chat.remoteHostId, info, chatModel, showMenu)
     }
   }
 }
@@ -462,7 +453,8 @@ private fun VibeChatPane(chat: Chat) {
     VibeSearchField("", {}, onClick = { VibeRail.selected.value = null })
     Column(Modifier.padding(horizontal = 12.dp)) {
       Spacer(Modifier.height(12.dp))
-      VibeChatAvatar(info, 62.dp, Modifier.padding(start = 6.dp).clickable(onClick = openChat))
+      val openProfile: () -> Unit = { if (info is ChatInfo.Direct) VibeProfileSheet.showContact(chat) { openChat() } else openChat() }
+      VibeChatAvatar(info, 62.dp, Modifier.padding(start = 6.dp).clickable(onClick = openProfile))
       Spacer(Modifier.height(10.dp))
       Text(
         info.displayName, Modifier.padding(start = 6.dp), fontSize = 20.sp, fontWeight = FontWeight.Bold,
@@ -496,10 +488,17 @@ private fun VibeChatPane(chat: Chat) {
           onClick = { if (info.contact.ready) startChatCall(chat.remoteHostId, info, CallMediaType.Video) },
         )
       }
+      VibePaneHeader("INFO")
+      VibeHashRow(label = "media", subtitle = "Photos and videos", onClick = { VibeChatContent.show(chat, VibeContentKind.Media) })
+      VibeHashRow(label = "files", onClick = { VibeChatContent.show(chat, VibeContentKind.Files) })
+      VibeHashRow(label = "links", onClick = { VibeChatContent.show(chat, VibeContentKind.Links) })
+      VibeHashRow(label = "voice-messages", onClick = { VibeChatContent.show(chat, VibeContentKind.Voice) })
+      VibeHashRow(label = "starred-messages", onClick = { VibeChatContent.show(chat, VibeContentKind.Starred) })
       if (info is ChatInfo.Group) {
         VibePaneHeader("MEMBERS")
         VibeHashRow(label = "members", subtitle = "Open the chat, then tap its name", onClick = openChat)
       }
+      if (info is ChatInfo.Direct) VibeHashRow(label = "profile", onClick = openProfile)
     }
   }
 }
@@ -636,7 +635,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
     Box(Modifier.align(Alignment.TopStart).clip(CircleShape).background(VibeColors.surface()).padding(3.dp)) {
       VibeAvatar(
         user.image, user.displayName, 64.dp,
-        Modifier.clickable { userPickerState.value = AnimatedViewState.VISIBLE }
+        Modifier.clickable { VibeOwnProfile.show() }
       )
       Box(
         Modifier.align(Alignment.BottomEnd).size(18.dp).clip(CircleShape).background(VibeColors.surface()).padding(3.dp)

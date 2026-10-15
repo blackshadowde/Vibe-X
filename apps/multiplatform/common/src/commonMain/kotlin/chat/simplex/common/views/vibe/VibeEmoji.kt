@@ -4,6 +4,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -90,6 +92,13 @@ fun VibeBigEmoji(item: ChatItem) {
         VibeBurst.fire(firstGlyph(text), bounds, big = true)
       }
   ) {
+    val glyphs = remember(text) { graphemes(text) }
+    if (glyphs.size in 1..3) {
+      // Noto animated emoji: each one has its own motion, we only add the pop
+      Row(Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value; transformOrigin = TransformOrigin(0f, 1f) }) {
+        for (g in glyphs) VibeAnimatedEmoji(g, if (glyphs.size == 1) 76.dp else 60.dp)
+      }
+    } else
     Text(
       text,
       style = bigEmojiStyle,
@@ -146,4 +155,19 @@ fun firstGlyph(text: String): String {
   it.setText(text)
   val end = it.next()
   return if (end > 0) text.substring(0, end) else text
+}
+
+fun graphemes(text: String): List<String> {
+  val it = java.text.BreakIterator.getCharacterInstance()
+  it.setText(text)
+  val out = mutableListOf<String>()
+  var start = it.first()
+  var end = it.next()
+  while (end != java.text.BreakIterator.DONE) {
+    val g = text.substring(start, end)
+    if (g.isNotBlank()) out.add(g)
+    start = end
+    end = it.next()
+  }
+  return out
 }

@@ -138,7 +138,7 @@ fun SendMsgView(
       val hasText = cs.message.text.isNotBlank()
       LaunchedEffect(autoLive, hasText) {
         if (!autoLive || !hasText || sendLiveMessage == null || updateLiveMessage == null) return@LaunchedEffect
-        delay(700)
+        delay(120)
         val c = composeState.value
         if (c.message.text.isNotBlank() && c.liveMessage == null && !c.editing && !c.forwarding && !c.inProgress &&
           (c.contextItem is ComposeContextItem.NoContextItem || c.contextItem is ComposeContextItem.QuotedItem) &&
@@ -289,7 +289,11 @@ fun SendMsgView(
           if (!hideSendButton) {
             val menuItems = MenuItems()
             if (menuItems.isNotEmpty()) {
-              SendMsgButton(icon, sendButtonSize, sendButtonAlpha, sendButtonColor, !sendMsgButtonDisabled, sendToConnect, sendMessage, vibe = vibeLeading != null) { showDropdown.value = true }
+              SendMsgButton(icon, sendButtonSize, sendButtonAlpha, sendButtonColor, !sendMsgButtonDisabled, sendToConnect, sendMessage, vibe = vibeLeading != null) {
+                if (vibeLeading != null) {
+                  VibeSendOptions.show(composeState.value.message.text, sendWithEffect, if (timedMessageAllowed && !composeState.value.editing) ({ ttl -> sendMessage(ttl) }) else null)
+                } else showDropdown.value = true
+              }
               DefaultDropdownMenu(showDropdown) {
                 menuItems.forEach { composable -> composable() }
               }
@@ -643,7 +647,7 @@ private fun startLiveMessage(
     }
     scope.launch {
       // Vibe X sends the live text more often, so typing looks live on the other side
-      val every = if (vibeStyle) 1100L else 3000L
+      val every = if (vibeStyle) 450L else 3000L
       delay(every)
       while (composeState.value.liveMessage != null) {
         update()

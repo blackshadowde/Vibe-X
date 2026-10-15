@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,9 +97,29 @@ fun VibeMessageRow(
   val quote = item.quotedItem
   val header = first || quote != null
   val (name, image) = senderName(chatInfo, item)
+  // Reactions that just arrived play Vibe's animation over this message
+  var rowRect by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
+  val seen = remember(item.id) { mutableStateOf(item.reactions.associate { it.reaction.text to it.totalReacted }) }
+  val density = androidx.compose.ui.platform.LocalDensity.current.density
+  LaunchedEffect(item.reactions) {
+    val now = item.reactions.associate { it.reaction.text to it.totalReacted }
+    val fresh = now.filter { (k, v) -> v > (seen.value[k] ?: 0) }.keys.take(2)
+    seen.value = now
+    if (rowRect == androidx.compose.ui.geometry.Rect.Zero) return@LaunchedEffect
+    for (k in fresh) {
+      if (k.contains("❤")) {
+        val origin = androidx.compose.ui.geometry.Offset(rowRect.left + rowRect.width * 0.5f, rowRect.top + rowRect.height * 0.45f)
+        val target = androidx.compose.ui.geometry.Offset(rowRect.left + 86f * density, rowRect.bottom - 14f * density)
+        VibeReactFx.heartIfQuiet(origin, target)
+      } else {
+        VibeReactFx.reaction(k, rowRect)
+      }
+    }
+  }
   Column(
     modifier
       .fillMaxWidth()
+      .onGloballyPositioned { rowRect = it.boundsInRoot() }
       .vibeSwipeReply(onReply != null) { onReply?.invoke() }
       .padding(start = 12.dp, end = 12.dp, top = if (header) 10.dp else 0.dp, bottom = if (last) 4.dp else 0.dp)
   ) {
@@ -149,7 +171,7 @@ fun vibeEndsBlock(item: ChatItem, newer: ChatItem?): Boolean =
   newer == null || !newer.isVibeRow() || newer.quotedItem != null || vibeStartsBlock(newer, item)
 
 /** Items Vibe doesn't show (the intro at the top says it once). */
-fun ChatItem.vibeHidden(): Boolean = when (content) {
+fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLiveDummy)) || (meta.isLive && content.text.isBlank())) true else when (content) {
   is CIContent.SndDirectE2EEInfo, is CIContent.RcvDirectE2EEInfo,
   is CIContent.SndGroupE2EEInfo, is CIContent.RcvGroupE2EEInfo,
   is CIContent.RcvChatFeature, is CIContent.SndChatFeature,

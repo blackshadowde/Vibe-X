@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.*
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.*
 import dev.icerock.moko.resources.compose.painterResource
 import dev.icerock.moko.resources.compose.stringResource
@@ -155,7 +157,7 @@ fun ChatItemView(
             }
           }
 
-          var modifier = if (vibeRow) Modifier.vibeBurstOnIncrease(r.reaction.text, r.totalReacted).vibeReactionChip(r.userReacted) else Modifier.padding(horizontal = 5.dp, vertical = 2.dp).clip(RoundedCornerShape(8.dp))
+          var modifier = if (vibeRow) Modifier.vibeReactionChip(r.userReacted) else Modifier.padding(horizontal = 5.dp, vertical = 2.dp).clip(RoundedCornerShape(8.dp))
           if (cInfo.featureEnabled(ChatFeature.Reactions)) {
             fun showReactionsMenu() {
               when (cInfo) {
@@ -325,10 +327,12 @@ fun ChatItemView(
             }
           }
           val bubbleCenter = remember { mutableStateOf(Offset.Zero) }
+          val bubbleRect = remember { mutableStateOf(Rect.Zero) }
+          val pxPerDp = LocalDensity.current.density
           val heart = remember { MsgReaction.Emoji(MREmojiChar.Heart) }
           Column(
             Modifier
-              .then(if (vibeRow) Modifier.vibeTrackCenter(bubbleCenter) else Modifier)
+              .then(if (vibeRow) Modifier.vibeTrackCenter(bubbleCenter).onGloballyPositioned { bubbleRect.value = it.boundsInRoot() } else Modifier)
               .clipChatItem(cItem, itemSeparation.largeGap, revealed.value)
               .hoverable(bubbleInteractionSource)
               .combinedClickable(
@@ -338,7 +342,10 @@ fun ChatItemView(
                   val mine = cItem.reactions.any { it.userReacted && it.reaction.text == heart.text }
                   if (mine || cItem.allowAddReaction) {
                     setReaction(cInfo, cItem, !mine, heart)
-                    if (!mine) VibeBurst.fire(heart.text, bubbleCenter.value, big = true)
+                    if (!mine) {
+                      val r = bubbleRect.value
+                      VibeReactFx.heart(bubbleCenter.value, Offset(r.left + 20f * pxPerDp, r.bottom + 14f * pxPerDp))
+                    }
                   }
                 }) else null,
                 onClick = {
@@ -377,7 +384,6 @@ fun ChatItemView(
                     val at = remember { mutableStateOf(Offset.Zero) }
                     Box(
                       (if (vibeRow) Modifier.vibePopIn(i).vibeTrackCenter(at).size(44.dp) else Modifier.size(36.dp)).clip(CircleShape).clickable {
-                        if (vibeRow) VibeBurst.fire(r.text, at.value)
                         setReaction(cInfo, cItem, true, r)
                         showMenu.value = false
                       },
@@ -403,6 +409,47 @@ fun ChatItemView(
 
             @Composable
             fun MsgContentItemDropdownMenu() {
+              // Vibe: the message menu slides up from the bottom instead of popping up
+              if (vibeRow && cItem.content.msgContent != null && cItem.id >= 0 && !cItem.isReport) {
+                val clipboard = LocalClipboardManager.current
+                if (showMenu.value) LaunchedEffect(Unit) {
+                  showMenu.value = false
+                  val canEdit = cItem.meta.editable && cItem.content.msgContent !is MsgContent.MCVoice && !live
+                  val file = cItem.file
+                  VibeMessageMenu.show(
+                    VibeMsgActions(
+                      chatInfo = cInfo,
+                      item = cItem,
+                      react = if (cInfo.featureEnabled(ChatFeature.Reactions) && cItem.allowAddReaction) ({ r -> setReaction(cInfo, cItem, true, r) }) else null,
+                      reply = if (cItem.meta.itemDeleted == null && !live && !cItem.localNote && cInfo.sendMsgEnabled) ({
+                        if (composeState.value.editing) {
+                          composeState.value = ComposeState(contextItem = ComposeContextItem.QuotedItem(cItem), useLinkPreviews = useLinkPreviews)
+                        } else {
+                          composeState.value = composeState.value.copy(contextItem = ComposeContextItem.QuotedItem(cItem))
+                        }
+                      }) else null,
+                      edit = if (canEdit) ({ composeState.value = ComposeState(editingItem = cItem, useLinkPreviews = useLinkPreviews) }) else null,
+                      forward = if (cItem.meta.itemDeleted == null && (file == null || file.forwardingAllowed()) && !cItem.isLiveDummy && !live) ({ forwardItem(cInfo, cItem) }) else null,
+                      copy = if (cItem.content.text.isNotEmpty()) ({ copyItemToClipboard(cItem, clipboard) }) else null,
+                      share = if (cItem.content.text.isNotEmpty() && file == null) ({ clipboard.shareText(cItem.content.text) }) else null,
+                      download = if (file != null && file.fileStatus is CIFileStatus.RcvInvitation && fileSizeValid(file, ciSenderProfile(cItem, chat.chatInfo))) ({
+                        withBGApi {
+                          val user = chatModel.currentUser.value
+                          if (user != null) controller.receiveFile(rhId, user, file.fileId)
+                        }
+                      }) else null,
+                      info = { showItemDetails(cInfo, cItem) },
+                      select = if (cItem.canBeDeletedForSelf) selectChatItem else null,
+                      moderate = if (cItem.chatDir !is CIDirection.GroupSnd && cItem.memberToModerate(cInfo)?.first != null) ({
+                        moderateMessageAlertDialog(cItem, moderateMessageQuestionText(cInfo.featureEnabled(ChatFeature.FullDelete), 1), deleteMessage)
+                      }) else null,
+                      deleteForEveryone = if (cItem.meta.deletable && !cItem.localNote && !(live && cItem.meta.isLive)) ({ deleteMessage(cItem.id, CIDeleteMode.cidmBroadcast) }) else null,
+                      deleteForMe = { deleteMessage(cItem.id, CIDeleteMode.cidmInternal) },
+                    )
+                  )
+                }
+                return
+              }
               val saveFileLauncher = rememberSaveFileLauncher(ciFile = cItem.file)
               when {
                 // cItem.id check is a special case for live message chat item which has negative ID while not sent yet

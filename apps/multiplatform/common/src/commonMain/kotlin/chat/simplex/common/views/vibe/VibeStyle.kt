@@ -33,7 +33,9 @@ fun ChatItem.vibeJustArrived(seconds: Int = 6): Boolean =
  * bar with a little spring, leaning in from its sender's side.
  */
 fun Modifier.vibeSweepIn(item: ChatItem): Modifier = composed {
-  val animate = remember(item.id) { item.vibeJustArrived() && VibeSeen.firstTime(item.id) }
+  // your own live message shows only once it's sent, so time it by its last update
+  val fresh = if (item.chatDir.sent) item.id >= 0 && (Clock.System.now() - item.meta.updatedAt).inWholeSeconds in 0L..6L else item.vibeJustArrived()
+  val animate = remember(item.id) { fresh && VibeSeen.firstTime(item.id) }
   if (!animate) return@composed this
   val p = remember(item.id) { Animatable(0f) }
   LaunchedEffect(item.id) {

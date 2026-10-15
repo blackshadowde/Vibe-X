@@ -1427,7 +1427,13 @@ fun BoxScope.ChatInfoToolbar(
 
   DefaultAppBar(
     navigationButton = { if (appPlatform.isAndroid || showSearch.value) { NavigationButtonBack(onBackClicked) }  },
-    title = { if (vibeStyle) VibeChatTitle(chatInfo, onAvatar = { if (chatInfo !is ChatInfo.Local) info() }) else ChatInfoToolbarTitle(chatInfo) },
+    title = {
+      if (vibeStyle) VibeChatTitle(chatInfo, onAvatar = {
+        val c = chatModel.chats.value.firstOrNull { it.id == chatInfo.id }
+        if (chatInfo is ChatInfo.Direct && c != null) VibeProfileSheet.showContact(c) { info() }
+        else if (chatInfo !is ChatInfo.Local) info()
+      }) else ChatInfoToolbarTitle(chatInfo)
+    },
     onTitleClick = if (chatInfo is ChatInfo.Local) null else info,
     showSearch = showSearch.value,
     searchAlwaysVisible = contentFilter.value != null,
@@ -2017,8 +2023,10 @@ fun BoxScope.ChatItemsList(
                 chatInfo, cItem, first = vibeHeader, last = vibeLast,
                 onAvatarClick = {
                   val d = cItem.chatDir
-                  if (d is CIDirection.GroupRcv && chatInfo is ChatInfo.Group) showMemberInfo(chatInfo.groupInfo, d.groupMember)
-                  else if (!d.sent) showChatInfo()
+                  if (d is CIDirection.GroupRcv && chatInfo is ChatInfo.Group) VibeProfileSheet.showMember(chatInfo.groupInfo, d.groupMember) { showMemberInfo(chatInfo.groupInfo, d.groupMember) }
+                  else if (d.sent) VibeOwnProfile.show()
+                  else if (chatInfo is ChatInfo.Direct) VibeProfileSheet.showContact(chat) { showChatInfo() }
+                  else showChatInfo()
                 },
                 onReply = if (canReply) ({
                   if (composeState.value.editing) {

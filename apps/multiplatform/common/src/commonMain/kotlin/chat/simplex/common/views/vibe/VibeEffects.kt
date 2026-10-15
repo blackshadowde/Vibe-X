@@ -96,6 +96,8 @@ fun VibeOverlay(modifier: Modifier = Modifier) {
   var origin by remember { mutableStateOf(Offset.Zero) }
   var size by remember { mutableStateOf(IntSize.Zero) }
   Box(modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot(); size = it.size }) {
+    VibeReactFx.density = LocalDensity.current.density
+    VibeReactFxLayer(origin)
     for (b in VibeBurst.bursts) {
       key(b.id) { BurstView(b, b.at - origin) { VibeBurst.bursts.remove(b) } }
     }

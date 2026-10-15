@@ -389,7 +389,8 @@ fun FramedItemView(
       if (vibeRow) {
         // Vibe: ticks sit right after the text (see CIMarkdownText); media without text gets them here
         if (ci.content.text.isEmpty() && ci.chatDir.sent) {
-          VibeTicks(ci, Modifier.padding(start = 4.dp, bottom = 4.dp).background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(8.dp)).padding(horizontal = 4.dp))
+          val media = ci.content.msgContent is MsgContent.MCImage || ci.content.msgContent is MsgContent.MCVideo
+          VibeTicks(ci, if (media) Modifier.padding(start = 4.dp, bottom = 4.dp).background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(8.dp)).padding(horizontal = 4.dp) else Modifier.padding(top = 2.dp))
         }
       } else
       Box(
