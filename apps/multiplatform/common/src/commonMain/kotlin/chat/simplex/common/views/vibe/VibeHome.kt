@@ -359,6 +359,18 @@ private fun VibeDmPane(stopped: Boolean) {
       if (notes != null && q.isEmpty() && folder == null) {
         item("notes") { NavTile(VibeIcons.Star, "Private notes", notes) }
       }
+      if (q.isEmpty() && folder == null) {
+        item("public") {
+          Row(
+            Modifier.fillMaxWidth().clickable { VibeDirectory.show() }.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Icon(VibeIcons.Public, null, Modifier.size(24.dp), tint = VibeColors.onVariant())
+            Spacer(Modifier.width(16.dp))
+            Text("Find public groups", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = VibeColors.onSurface())
+          }
+        }
+      }
       if (requests.isNotEmpty()) {
         item("inv") { SectionLabel("INVITES — ${requests.size}") }
         itemsIndexed(requests, key = { _, c -> "inv" + c.id }) { i, c -> Stagger(i) { InviteTile(c) } }
@@ -660,6 +672,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
   val running = chatModel.chatRunning.value
   // a quiet look for a new Vibe X now and then (at most every 6 hours)
   LaunchedEffect(Unit) {
+    VibeStatus.clearIfExpired()
     VibeScheduled.start()
     VibeCrash.checkOnStart()
     VibeUpdater.maybeCheck()

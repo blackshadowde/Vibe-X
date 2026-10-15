@@ -29,6 +29,12 @@ interface ImageGalleryProvider {
   fun currentPageChanged(index: Int)
   fun scrollToStart()
   fun onDismiss(index: Int)
+  /** Vibe X: preview pictures (item id, base64) of the chat's photos and videos, oldest first. */
+  fun vibeStrip(): List<Pair<Long, String>> = emptyList()
+  /** Vibe X: the item shown on [page]. */
+  fun vibeItemAt(page: Int): Long? = null
+  /** Vibe X: the page that shows [itemId], counted from [currentPage]. */
+  fun vibePageFor(itemId: Long, currentPage: Int): Int? = null
 }
 
 @Composable
@@ -172,7 +178,9 @@ fun ImageFullScreenView(imageProvider: () -> ImageGalleryProvider, close: () -> 
       }
     }
   }
-  if (appPlatform.isAndroid) {
+  if (appPlatform.isAndroid && chat.simplex.common.views.vibe.vibeStyle) {
+    chat.simplex.common.views.vibe.VibeMediaViewer(provider, pagerState, goBack) { index -> Content(index) }
+  } else if (appPlatform.isAndroid) {
     HorizontalPager(state = pagerState) { index -> Content(index) }
   } else {
     Content(pagerState.currentPage)

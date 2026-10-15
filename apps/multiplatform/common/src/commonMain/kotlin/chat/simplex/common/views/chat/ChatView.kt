@@ -3717,6 +3717,26 @@ fun providerForGallery(
       initialIndex = 0
     }
 
+    override fun vibeStrip(): List<Pair<Long, String>> = chatItems.filter { canShowMedia(it) }.mapNotNull {
+      when (val mc = it.content.msgContent) {
+        is MsgContent.MCImage -> it.id to mc.image
+        is MsgContent.MCVideo -> it.id to mc.image
+        else -> null
+      }
+    }
+
+    override fun vibeItemAt(page: Int): Long? = item(initialIndex - page, initialChatId)?.second?.id
+
+    override fun vibePageFor(itemId: Long, currentPage: Int): Int? {
+      val strip = chatItems.filter { canShowMedia(it) }
+      val cur = vibeItemAt(currentPage) ?: return null
+      val from = strip.indexOfFirst { it.id == cur }
+      val to = strip.indexOfFirst { it.id == itemId }
+      if (from < 0 || to < 0) return null
+      // newer media are on higher pages
+      return currentPage + (to - from)
+    }
+
     override fun onDismiss(index: Int) {
       val internalIndex = initialIndex - index
       val item = item(internalIndex, initialChatId)

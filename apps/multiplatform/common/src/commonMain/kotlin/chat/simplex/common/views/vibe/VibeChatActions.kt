@@ -30,6 +30,7 @@ import chat.simplex.common.views.chat.deleteContactDialog
 import chat.simplex.common.views.chat.group.deleteGroupDialog
 import chat.simplex.common.views.chat.group.leaveGroupDialog
 import chat.simplex.common.views.chatlist.*
+import chat.simplex.common.views.helpers.ModalManager
 import chat.simplex.res.MR
 import dev.icerock.moko.resources.compose.painterResource
 import kotlinx.coroutines.delay
@@ -117,7 +118,7 @@ private fun Sheet(chat0: Chat, onOpen: () -> Unit, close: () -> Unit) {
         }
         ListRow(VibeIcons.Folder, if (chat.vibeTags().isEmpty()) "Add to folder" else "Change folder") {
           close()
-          chat.simplex.common.views.helpers.ModalManager.start.showModalCloseable { c ->
+          ModalManager.start.showModalCloseable { c ->
             if (chatModel.userTags.value.isEmpty()) TagListEditor(rhId = chat.remoteHostId, chat = chat, close = c)
             else TagListView(rhId = chat.remoteHostId, chat = chat, close = c, reorderMode = false)
           }

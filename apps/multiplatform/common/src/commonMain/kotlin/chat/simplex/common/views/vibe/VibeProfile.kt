@@ -56,7 +56,9 @@ object VibeProfileSheet {
         image = c.image,
         subtitle = c.profile.contactLink?.let { simplexChatLink(it) },
         fullName = c.fullName.takeIf { it.isNotBlank() && it != c.displayName },
-        about = listOfNotNull(c.profile.shortDescr, c.profile.description).filter { it.isNotBlank() }.joinToString("\n\n").ifBlank { null },
+        about = VibeStatus.bioOf(c.profile.description),
+        status = c.profile.shortDescr?.ifBlank { null },
+        timeZone = VibeStatus.timeZoneOf(c.profile.description),
         since = c.createdAt,
         sinceLabel = "Connected since",
         close = close,
@@ -75,7 +77,9 @@ object VibeProfileSheet {
         image = member.image,
         subtitle = member.memberProfile.contactLink?.let { simplexChatLink(it) },
         fullName = member.fullName.takeIf { it.isNotBlank() && it != member.displayName },
-        about = listOfNotNull(member.memberProfile.shortDescr, member.memberProfile.description).filter { it.isNotBlank() }.joinToString("\n\n").ifBlank { null },
+        about = VibeStatus.bioOf(member.memberProfile.description),
+        status = member.memberProfile.shortDescr?.ifBlank { null },
+        timeZone = VibeStatus.timeZoneOf(member.memberProfile.description),
         since = null,
         sinceLabel = "Member of ${groupInfo.displayName} since",
         close = close,
@@ -131,6 +135,8 @@ private fun PersonSheet(
   subtitle: String?,
   fullName: String?,
   about: String?,
+  status: String? = null,
+  timeZone: String? = null,
   since: Instant?,
   sinceLabel: String,
   close: () -> Unit,
@@ -145,6 +151,7 @@ private fun PersonSheet(
   Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
     BleedHeader(name, image, 280.dp, close)
     Column(Modifier.padding(horizontal = 20.dp)) {
+      if (status != null) VibeStatusBubble(status, Modifier.padding(bottom = 8.dp))
       Text(name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = VibeColors.onSurface(), maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 28.sp)
       if (fullName != null) Text(fullName, fontSize = 15.sp, color = muted)
       if (subtitle != null) {
@@ -177,6 +184,14 @@ private fun PersonSheet(
         }
       }
       val label = Modifier.padding(top = 18.dp, bottom = 4.dp)
+      val local = timeZone?.let { VibeStatus.localTime(it) }
+      if (local != null) {
+        Row(Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+          Icon(VibeIcons.Schedule, null, Modifier.size(17.dp), tint = muted)
+          Spacer(Modifier.width(8.dp))
+          Text("$local for ${name.substringBefore(' ')}", fontSize = 15.sp, color = VibeColors.onSurface())
+        }
+      }
       if (about != null) {
         Text("About me", label, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = muted)
         Text(about, fontSize = 15.sp, color = VibeColors.onSurface())
@@ -286,6 +301,17 @@ private fun OwnSheet(close: () -> Unit) {
       }
       Spacer(Modifier.height(14.dp))
       Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
+        Row(
+          Modifier.fillMaxWidth().clickable { close(); VibeStatus.showEditor() }.padding(horizontal = 16.dp, vertical = 14.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Icon(VibeIcons.Mood, null, Modifier.size(22.dp), tint = VibeColors.onSurface())
+          Spacer(Modifier.width(16.dp))
+          Column {
+            Text(user.profile.shortDescr?.ifBlank { null } ?: "Set a status", fontSize = 16.sp, color = VibeColors.onSurface(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("What you're up to, and your local time", fontSize = 13.sp, color = muted)
+          }
+        }
         Row(
           Modifier.fillMaxWidth().clickable {
             close()

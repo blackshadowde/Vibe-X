@@ -27,6 +27,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -338,6 +339,9 @@ private fun ActiveCallOverlayLayout(
   toggleSound: () -> Unit,
   flipCamera: () -> Unit
 ) {
+  val vibe = chat.simplex.common.views.vibe.vibeStyle
+  // Vibe X: a voice call sits on a deep blurple glow instead of black
+  Box(if (vibe && !call.hasVideo) Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF2B2F7A), Color(0xFF15162E), Color(0xFF0B0B10)))) else Modifier) {
   Column {
     CallAppBar(
       title = {
@@ -385,7 +389,8 @@ private fun ActiveCallOverlayLayout(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
           ) {
-            ProfileImage(size = 192.dp, image = call.contact.profile.image)
+            if (vibe) chat.simplex.common.views.vibe.VibeCallHero(call.contact.profile.image, call.contact.chatViewName, call.callState == CallState.Connected)
+            else ProfileImage(size = 192.dp, image = call.contact.profile.image)
             AudioCallInfoView(call)
           }
         }
@@ -398,7 +403,10 @@ private fun ActiveCallOverlayLayout(
         val size = ((maxWidth - DEFAULT_PADDING_HALF * 4) / 5).coerceIn(0.dp, 60.dp)
         // limiting max width for tablets/wide screens, will be displayed in the center
         val padding = ((min(420.dp, maxWidth) - size * 5) / 4).coerceAtLeast(0.dp)
-        Row(horizontalArrangement = Arrangement.spacedBy(padding), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+          (if (vibe) Modifier.background(Color(0xFF111214).copy(alpha = 0.82f), RoundedCornerShape(40.dp)).padding(horizontal = 12.dp, vertical = 10.dp) else Modifier),
+          horizontalArrangement = Arrangement.spacedBy(if (vibe) (padding - 5.dp).coerceAtLeast(4.dp) else padding), verticalAlignment = Alignment.CenterVertically
+        ) {
           ToggleMicButton(call, enabled, toggleAudio, size = size)
           SelectSoundDevice(size = size)
           ControlButton(painterResource(MR.images.ic_call_end_filled), MR.strings.icon_descr_hang_up, enabled = enabled, dismiss, background = Color.Red, size = size, iconPaddingPercent = 0.166f)
@@ -412,6 +420,7 @@ private fun ActiveCallOverlayLayout(
         }
       }
     }
+  }
   }
 }
 
@@ -430,7 +439,7 @@ private fun ControlButtonWrap(enabled: Boolean = true, action: () -> Unit, backg
       .background(background, CircleShape)
       .size(size)
       .clickable(
-        onClick = action,
+        onClick = { if (chat.simplex.common.views.vibe.vibeStyle) chat.simplex.common.views.vibe.VibeHaptics.medium(); action() },
         role = Role.Button,
         interactionSource = remember { MutableInteractionSource() },
         indication = ripple,
@@ -461,12 +470,12 @@ private fun ToggleSoundButton(enabled: Boolean, speaker: Boolean, muted: Boolean
 }
 
 @Composable
-fun controlButtonsBackground(): Color = if (chatModel.activeCall.value?.peerMediaSources?.hasVideo == true) Color.Black.copy(0.2f) else Color.White.copy(0.2f)
+fun controlButtonsBackground(): Color = if (chat.simplex.common.views.vibe.vibeStyle) Color(0xFF3A393F) else if (chatModel.activeCall.value?.peerMediaSources?.hasVideo == true) Color.Black.copy(0.2f) else Color.White.copy(0.2f)
 
 @Composable
 fun AudioCallInfoView(call: Call) {
   Column(horizontalAlignment = Alignment.CenterHorizontally) {
-    InfoText(call.contact.chatViewName, style = MaterialTheme.typography.h2)
+    if (!chat.simplex.common.views.vibe.vibeStyle) InfoText(call.contact.chatViewName, style = MaterialTheme.typography.h2)
     InfoText(call.callState.text)
 
     val connInfo = call.connectionInfo

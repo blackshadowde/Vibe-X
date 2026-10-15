@@ -351,7 +351,11 @@ fun FramedItemView(
                 } else {
                   ciFileView(ci, mc.text)
                 }
-              is MsgContent.MCLink -> {
+              is MsgContent.MCLink -> if (vibeRow) {
+                // Discord style: the text, then the link's card under it
+                CIMarkdownText(chatsCtx, ci, chat, chatTTL, linkMode, uriHandler, onLinkLongClick, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
+                VibeLinkCard(mc.preview, onLongClick = { showMenu.value = true })
+              } else {
                 ChatItemLinkView(mc.preview, showMenu, onLongClick = { showMenu.value = true })
                 Box(Modifier.widthIn(max = DEFAULT_MAX_IMAGE_WIDTH)) {
                   CIMarkdownText(chatsCtx, ci, chat, chatTTL, linkMode, uriHandler, onLinkLongClick, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
