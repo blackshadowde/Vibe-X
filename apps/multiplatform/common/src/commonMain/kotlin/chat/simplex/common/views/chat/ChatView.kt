@@ -838,11 +838,14 @@ fun ChatView(
 }
 
 fun updateAvailableContent(chatRh: Long?, activeChat: State<Chat?>, availableContent: MutableState<List<ContentFilter>>) {
+  // Read the chat here, on the calling (main) thread: reading this derived state from a
+  // background thread before its snapshot is applied throws IllegalStateException.
+  val chatInfo = try { activeChat.value?.chatInfo } catch (e: IllegalStateException) { null }
+  if (chatInfo == null || chatInfo !is ChatInfo.Direct && chatInfo !is ChatInfo.Group && chatInfo !is ChatInfo.Local) return
   withBGApi {
-    val chatInfo = activeChat.value?.chatInfo
-    if (chatInfo == null || chatInfo !is ChatInfo.Direct && chatInfo !is ChatInfo.Group && chatInfo !is ChatInfo.Local) return@withBGApi
     val types = chatModel.controller.apiGetChatContentTypes(chatRh, chatInfo.chatType, chatInfo.apiId, null)
-    if (activeChat.value?.chatInfo?.id != chatInfo.id) return@withBGApi
+    val stillOpen = withContext(Dispatchers.Main) { try { activeChat.value?.chatInfo?.id } catch (e: IllegalStateException) { null } }
+    if (stillOpen != chatInfo.id) return@withBGApi
     if (types == null) {
       availableContent.value = ContentFilter.entries
     } else {

@@ -19,6 +19,8 @@ actual class RecorderNative: RecorderInterface {
   private var progressJob: Job? = null
   private var filePath: String? = null
   private var recStartedAt: Long? = null
+  private var pausedAt: Long? = null
+  private var pausedTotal: Long = 0
   private fun initRecorder() =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       MediaRecorder(androidAppContext)
@@ -45,6 +47,8 @@ actual class RecorderNative: RecorderInterface {
     rec.setOutputFile(path)
     rec.prepare()
     rec.start()
+    pausedAt = null
+    pausedTotal = 0
     recStartedAt = System.currentTimeMillis()
     progressJob = CoroutineScope(Dispatchers.Default).launch {
       while(isActive) {
@@ -86,10 +90,32 @@ actual class RecorderNative: RecorderInterface {
     filePath = null
     recorder = null
     keepScreenOn(false)
-    return (realDuration(path) ?: 0).also { recStartedAt = null }
+    return (realDuration(path) ?: 0).also { recStartedAt = null; pausedAt = null; pausedTotal = 0 }
   }
 
-  private fun progress(): Int? = recStartedAt?.let { (System.currentTimeMillis() - it).toInt() }
+  override fun amplitude(): Float {
+    val r = recorder ?: return 0f
+    if (pausedAt != null) return 0f
+    return (runCatching { r.maxAmplitude }.getOrDefault(0) / 32767f).coerceIn(0f, 1f)
+  }
+
+  override fun pause(): Boolean {
+    val r = recorder ?: return false
+    if (pausedAt != null) return true
+    return runCatching { r.pause(); pausedAt = System.currentTimeMillis() }.isSuccess
+  }
+
+  override fun resume(): Boolean {
+    val r = recorder ?: return false
+    val at = pausedAt ?: return true
+    return runCatching {
+      r.resume()
+      pausedTotal += System.currentTimeMillis() - at
+      pausedAt = null
+    }.isSuccess
+  }
+
+  private fun progress(): Int? = recStartedAt?.let { ((pausedAt ?: System.currentTimeMillis()) - it - pausedTotal).toInt() }
 
   /**
   * Return real duration from [AudioPlayer] if it's possible (should always be possible).
@@ -277,6 +303,11 @@ actual object AudioPlayer: AudioPlayerInterface {
     if (currentlyPlaying.value?.fileSource?.filePath == filePath) {
       player.seekTo(ms)
     }
+  }
+
+  override fun setSpeed(speed: Float) {
+    // setting the speed of a paused player starts it, so only while playing
+    runCatching { if (player.isPlaying) player.playbackParams = player.playbackParams.setSpeed(speed) }
   }
 
   override fun duration(unencryptedFilePath: String): Int? {

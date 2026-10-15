@@ -43,6 +43,10 @@ fun CIVoiceView(
   longClick: () -> Unit,
   receiveFile: (Long) -> Unit,
 ) {
+  if (chat.simplex.common.views.vibe.vibeStyle && !smallView) {
+    chat.simplex.common.views.vibe.VibeVoiceNote(providedDurationSec, file, longClick, receiveFile)
+    return
+  }
   val sizeMultiplier = if (smallView) voiceMessageSizeBasedOnSquareSize(36f) / 56f else 1f
   val padding = when {
     smallView -> PaddingValues()

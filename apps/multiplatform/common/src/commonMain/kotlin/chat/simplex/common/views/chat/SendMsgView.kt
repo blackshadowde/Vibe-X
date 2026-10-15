@@ -70,6 +70,45 @@ fun SendMsgView(
   focusRequester: FocusRequester? = null,
   ) {
   val showCustomDisappearingMessageDialog = remember { mutableStateOf(false) }
+  // Vibe: the recorder lives here, so the input row can turn into the recording row and back
+  val vibeRec: RecorderInterface = remember { RecorderNative() }
+  DisposableEffect(Unit) { onDispose { if (vibeLeading != null) vibeRec.stop() } }
+  val vibeStartRecording: () -> Unit = {
+    if (recState.value is RecordingState.NotStarted) {
+      runCatching {
+        val filePath = vibeRec.start { progress: Int?, finished: Boolean ->
+          val state = recState.value
+          if (state is RecordingState.Started && progress != null) {
+            recState.value = if (!finished)
+              RecordingState.Started(state.filePath, progress)
+            else
+              RecordingState.Finished(state.filePath, progress)
+          }
+        }
+        if (filePath.isNotEmpty()) {
+          recState.value = RecordingState.Started(filePath = filePath)
+        }
+      }.onFailure {
+        Log.e(TAG, "Vibe recording: ${it.stackTraceToString()}")
+        vibeRec.stop()
+        showToast(generalGetString(MR.strings.unknown_error))
+      }
+    }
+  }
+  val vibeSendRecording: () -> Unit = {
+    recState.value.filePathNullable?.let {
+      VibeVoiceSend.pending.value = true
+      recState.value = RecordingState.Finished(it, vibeRec.stop())
+    }
+  }
+  val vibeCancelRecording: () -> Unit = {
+    recState.value.filePathNullable?.let {
+      VibeVoiceSend.pending.value = false
+      // a too-short recording is discarded (and its file deleted) by the compose view
+      recState.value = RecordingState.Finished(it, 0)
+      vibeRec.stop()
+    }
+  }
   val padding = if (appPlatform.isAndroid) PaddingValues(vertical = 8.dp) else PaddingValues(top = 3.dp, bottom = 4.dp)
   run {
     val cs = composeState.value
@@ -163,6 +202,16 @@ fun SendMsgView(
           Row(verticalAlignment = Alignment.CenterVertically) {
             val stopRecOnNextClick = remember { mutableStateOf(false) }
             when {
+              vibeLeading != null && (needToAllowVoiceToContact || !allowedVoiceByPrefs) ->
+                VibeVoiceButton(enabled = false, onStart = {}) {
+                  if (needToAllowVoiceToContact) {
+                    showNeedToAllowVoiceAlert(allowVoiceToContact)
+                  } else {
+                    showDisabledVoiceAlert(isDirectChat)
+                  }
+                }
+              vibeLeading != null && allowedToRecordVoiceByPlatform() ->
+                VibeVoiceButton(onStart = vibeStartRecording)
               needToAllowVoiceToContact || !allowedVoiceByPrefs -> {
                 DisallowedVoiceButton {
                   if (needToAllowVoiceToContact) {
@@ -316,6 +365,8 @@ fun SendMsgView(
           ButtonsArea()
         }
       }
+    } else if (recState.value is RecordingState.Started) {
+      VibeRecordingRow((recState.value as? RecordingState.Started)?.progressMs ?: 0, vibeRec, vibeCancelRecording, vibeSendRecording)
     } else {
       // Vibe's input: a pill (+, text, live toggle) and a big round send / voice button beside it
       Row(verticalAlignment = Alignment.Bottom) {
@@ -474,6 +525,10 @@ private fun DisallowedVoiceButton(onClick: () -> Unit) {
 
 @Composable
 fun VoiceButtonWithoutPermission(onClick: () -> Unit) {
+  if (vibeStyle) {
+    VibeVoiceButton(onStart = {}, onClick = onClick)
+    return
+  }
   IconButton(onClick, Modifier.size(36.dp)) {
     Icon(
       painterResource(MR.images.ic_keyboard_voice_filled),

@@ -1698,6 +1698,19 @@ fun ComposeView(
     }
   }
 
+  // Vibe: the send button of the recording row sends the voice note as soon as it's ready
+  LaunchedEffect(composeState.value.preview) {
+    val p = composeState.value.preview
+    if (VibeVoiceSend.pending.value) {
+      if (p is ComposePreview.VoicePreview && p.finished) {
+        VibeVoiceSend.pending.value = false
+        sendMessage(null)
+      } else if (p !is ComposePreview.VoicePreview && recState.value !is RecordingState.Started) {
+        VibeVoiceSend.pending.value = false
+      }
+    }
+  }
+
   LaunchedEffect(composeState.value.inProgress) {
     val newProgressByTimeout = if (composeState.value.inProgress) {
       delay(1000)
@@ -1786,7 +1799,8 @@ fun ComposeView(
           contextItemView()
         }
         Box(Modifier.align(Alignment.BottomStart)) {
-          previewView()
+          // Vibe: while recording, the input row itself shows the recording
+          if (!(vibeStyle && (composeState.value.preview as? ComposePreview.VoicePreview)?.finished == false)) previewView()
         }
       }
     }
