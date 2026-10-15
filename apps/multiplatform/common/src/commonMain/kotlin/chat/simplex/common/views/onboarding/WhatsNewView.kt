@@ -1023,6 +1023,8 @@ else
 // Google Play policy restricts promoting investments, so Play builds only show it in the US
 @Composable
 fun crowdfundingAvailable(): Boolean {
+  // Vibe X: no funding / investment banners
+  if (chat.simplex.common.views.vibe.vibeStyle) return false
   if (!platform.androidIsPlayStoreBuild) return true
   if (androidPlayStoreCountry.value == null) {
     LaunchedEffect(Unit) {

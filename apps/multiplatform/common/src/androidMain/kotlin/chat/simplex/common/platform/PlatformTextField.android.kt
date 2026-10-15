@@ -65,10 +65,11 @@ actual fun PlatformTextField(
   val cs = composeState.value
   val textColor = MaterialTheme.colors.onBackground
   val hintColor = MaterialTheme.colors.secondary
-  val padding = PaddingValues(0.dp, 7.dp, 50.dp, 0.dp)
+  val vibe = chat.simplex.common.views.vibe.vibeStyle
+  val padding = PaddingValues(0.dp, 7.dp, if (vibe) 4.dp else 50.dp, 0.dp)
   val paddingStart = 0
   val paddingTop = with(LocalDensity.current) { 7.dp.roundToPx() }
-  val paddingEnd = with(LocalDensity.current) { 50.dp.roundToPx() }
+  val paddingEnd = with(LocalDensity.current) { (if (vibe) 4.dp else 50.dp).roundToPx() }
   val paddingBottom = with(LocalDensity.current) { 7.dp.roundToPx() }
   var showKeyboard by remember { mutableStateOf(false) }
   var freeFocus by remember { mutableStateOf(false) }

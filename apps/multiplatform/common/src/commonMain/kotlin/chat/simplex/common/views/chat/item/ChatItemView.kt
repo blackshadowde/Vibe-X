@@ -208,8 +208,9 @@ fun ChatItemView(
               )
               .onRightClick { showReactionsMenu() }
           }
-          Row(modifier.padding(if (vibeRow) PaddingValues(horizontal = 8.dp, vertical = 3.dp) else PaddingValues(2.dp)), verticalAlignment = Alignment.CenterVertically) {
-            ReactionIcon(r.reaction.text, fontSize = if (vibeRow) 16.sp else 12.sp)
+          VibeChipBox(vibeRow, r.totalReacted) {
+          Row(if (vibeRow) modifier.height(24.dp).padding(horizontal = 6.dp) else modifier.padding(2.dp), verticalAlignment = Alignment.CenterVertically) {
+            ReactionIcon(r.reaction.text, fontSize = if (vibeRow) 14.sp else 12.sp)
             DefaultDropdownMenu(showMenu = showReactionMenu) {
               reactionMenuItems.value.forEach { m ->
                 ItemAction(
@@ -227,10 +228,7 @@ fun ChatItemView(
                 )
               }
             }
-            if (vibeRow) {
-              Spacer(Modifier.width(5.dp))
-              VibeReactionCount(r.totalReacted, r.userReacted)
-            } else if (r.totalReacted > 1) {
+            if (!vibeRow && r.totalReacted > 1) {
               Spacer(Modifier.width(4.dp))
               Text(
                 "${r.totalReacted}",
@@ -239,6 +237,7 @@ fun ChatItemView(
                 color = if (r.userReacted) MaterialTheme.colors.primary else MaterialTheme.colors.secondary,
               )
             }
+          }
           }
         }
       }
@@ -325,12 +324,23 @@ fun ChatItemView(
               bubbleInteractionSource.emit(HoverInteraction.Exit(enterInteraction))
             }
           }
+          val bubbleCenter = remember { mutableStateOf(Offset.Zero) }
+          val heart = remember { MsgReaction.Emoji(MREmojiChar.Heart) }
           Column(
             Modifier
+              .then(if (vibeRow) Modifier.vibeTrackCenter(bubbleCenter) else Modifier)
               .clipChatItem(cItem, itemSeparation.largeGap, revealed.value)
               .hoverable(bubbleInteractionSource)
               .combinedClickable(
                 onLongClick = { showMenu.value = true },
+                // Vibe: double tap = ❤️ (again to take it back), with a burst of hearts
+                onDoubleClick = if (vibeRow && cInfo.featureEnabled(ChatFeature.Reactions) && cItem.content.msgContent != null && cItem.id >= 0 && cItem.meta.itemDeleted == null) ({
+                  val mine = cItem.reactions.any { it.userReacted && it.reaction.text == heart.text }
+                  if (mine || cItem.allowAddReaction) {
+                    setReaction(cInfo, cItem, !mine, heart)
+                    if (!mine) VibeBurst.fire(heart.text, bubbleCenter.value, big = true)
+                  }
+                }) else null,
                 onClick = {
                   if (appPlatform.isAndroid && (searchIsNotBlank.value || cItem.meta.itemForwarded?.chatTypeApiIdMsgId != null)) {
                     hoveredItemId.value = if (hoveredItemId.value == cItem.id) null else cItem.id

@@ -29,7 +29,8 @@ import chat.simplex.common.views.SplashView
 import chat.simplex.common.views.call.*
 import chat.simplex.common.views.chat.ChatView
 import chat.simplex.common.views.chatlist.*
-import chat.simplex.common.views.vibe.VibeHome
+import chat.simplex.common.views.vibe.*
+import androidx.compose.animation.core.spring
 import chat.simplex.common.views.database.DatabaseErrorView
 import chat.simplex.common.views.helpers.*
 import chat.simplex.common.views.helpers.ModalManager.Companion.fromEndToStartTransition
@@ -309,6 +310,10 @@ fun AndroidWrapInCallLayout(content: @Composable () -> Unit) {
 // Spec: spec/client/navigation.md#AndroidScreen
 @Composable
 fun AndroidScreen(userPickerState: MutableStateFlow<AnimatedViewState>) {
+  if (vibeStyle) {
+    VibeAndroidScreen(userPickerState)
+    return
+  }
   BoxWithConstraints {
     val currentChatId = remember { mutableStateOf(chatModel.chatId.value) }
     val offset = remember { Animatable(if (chatModel.chatId.value == null) 0f else maxWidth.value) }
@@ -363,6 +368,123 @@ fun AndroidScreen(userPickerState: MutableStateFlow<AnimatedViewState>) {
   }
 }
 
+/**
+ * Vibe's navigation: the chat slides OVER home (home drifts left and dims),
+ * follows your finger both ways: drag left on home to bring back the last
+ * chat, drag right anywhere in a chat to go back. Springs on release.
+ */
+@Composable
+private fun VibeAndroidScreen(userPickerState: MutableStateFlow<AnimatedViewState>) {
+  BoxWithConstraints {
+    val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
+    val edgePx = with(LocalDensity.current) { 18.dp.toPx() }
+    val currentChatId = remember { mutableStateOf(chatModel.chatId.value) }
+    // 0 = home, 1 = chat fully open
+    val progress = remember { Animatable(if (chatModel.chatId.value == null) 0f else 1f) }
+    val scope = rememberCoroutineScope()
+    val settle = spring<Float>(dampingRatio = 1f, stiffness = 420f)
+    var cancelledOpen by remember { mutableStateOf<String?>(null) }
+    val onComposed: suspend (chatId: String?) -> Unit = { chatId ->
+      if (!VibeNav.dragging.value) {
+        scope.launch { progress.animateTo(if (chatId == null) 0f else 1f, settle) }.join()
+      }
+    }
+    LaunchedEffect(Unit) {
+      snapshotFlow { chatModel.chatId.value }
+        .distinctUntilChanged()
+        .collect {
+          if (it != null && it == cancelledOpen) {
+            // the drag was let go before the chat finished opening
+            cancelledOpen = null
+            chatModel.chatId.value = null
+            return@collect
+          }
+          if (it == null) onComposed(null) else VibeNav.lastChatId = it
+          currentChatId.value = it
+        }
+    }
+    fun closeChat() {
+      val back = VibeNav.back
+      if (back != null) back() else chatModel.chatId.value = null
+    }
+    Box(
+      Modifier
+        .graphicsLayer { translationX = -0.22f * progress.value * widthPx }
+        .vibeEdgeDrag(
+          toRight = false,
+          enabled = { chatModel.chatId.value == null && !VibeNav.dragging.value && !ModalManager.start.hasModalsOpen() },
+          onStart = {
+            val id = VibeRail.selected.value ?: VibeNav.lastChatId
+            val chat = id?.let { cid -> chatModel.chats.value.firstOrNull { it.id == cid } }
+            if (chat == null || !(chat.chatInfo is ChatInfo.Direct || chat.chatInfo is ChatInfo.Group || chat.chatInfo is ChatInfo.Local)) {
+              false
+            } else {
+              VibeNav.dragging.value = true
+              cancelledOpen = null
+              openVibeChat(chat, scope)
+              true
+            }
+          },
+          onDelta = { dx -> scope.launch { progress.snapTo((progress.value - dx / widthPx).coerceIn(0f, 1f)) } },
+          onEnd = { v ->
+            val commit = v < -500f || (progress.value > 0.35f && v < 500f)
+            scope.launch {
+              if (commit) {
+                progress.animateTo(1f, settle, initialVelocity = -v / widthPx)
+              } else {
+                progress.animateTo(0f, settle, initialVelocity = -v / widthPx)
+                val open = chatModel.chatId.value
+                if (open != null) closeChat() else cancelledOpen = VibeRail.selected.value ?: VibeNav.lastChatId
+              }
+              VibeNav.dragging.value = false
+            }
+          },
+        )
+    ) {
+      StartPartOfScreen(userPickerState)
+      Box(Modifier.matchParentSize().graphicsLayer { alpha = progress.value }.background(Color.Black.copy(alpha = 0.28f)))
+    }
+    Box(
+      Modifier
+        .graphicsLayer { translationX = (1f - progress.value) * widthPx }
+        .drawBehind {
+          val t = progress.value
+          if (t > 0f && t < 0.995f) {
+            drawRect(
+              Brush.horizontalGradient(listOf(Color(0x00000000), Color(0x55000000)), startX = -edgePx, endX = 0f),
+              topLeft = Offset(-edgePx, 0f),
+              size = Size(edgePx, size.height),
+              alpha = t
+            )
+          }
+        }
+        .vibeEdgeDrag(
+          toRight = true,
+          enabled = { chatModel.chatId.value != null && !VibeNav.dragging.value && !ModalManager.end.hasModalsOpen() },
+          onStart = { VibeNav.dragging.value = true; true },
+          onDelta = { dx -> scope.launch { progress.snapTo((progress.value - dx / widthPx).coerceIn(0f, 1f)) } },
+          onEnd = { v ->
+            val close = if (kotlin.math.abs(v) >= widthPx) v > 0 else progress.value < 0.5f
+            scope.launch {
+              if (close) {
+                progress.animateTo(0f, settle, initialVelocity = -v / widthPx)
+                VibeNav.dragging.value = false
+                closeChat()
+              } else {
+                progress.animateTo(1f, settle, initialVelocity = -v / widthPx)
+                VibeNav.dragging.value = false
+              }
+            }
+          },
+        )
+    ) {
+      currentChatId.value?.let {
+        ChatView(chatsCtx = chatModel.chatsContext, currentChatId, onComposed = onComposed)
+      }
+    }
+  }
+}
+
 @Composable
 fun StartPartOfScreen(userPickerState: MutableStateFlow<AnimatedViewState>) {
   if (chatModel.setDeliveryReceipts.value) {
@@ -374,8 +496,8 @@ fun StartPartOfScreen(userPickerState: MutableStateFlow<AnimatedViewState>) {
     if (chatModel.sharedContent.value == null) {
       CompositionLocalProvider(LocalAppBarHandler provides rememberAppBarHandler()) {
         if (appPlatform.isAndroid) {
-          // Vibe X: Discord layout (rail + middle pane) around the chat list
-          VibeHome { ChatListView(chatModel, userPickerState, AppLock::setPerformLA, stopped) }
+          // Vibe X: Vibe's home (rail + middle pane + your card)
+          VibeHome(userPickerState, stopped)
         } else {
           ChatListView(chatModel, userPickerState, AppLock::setPerformLA, stopped)
         }

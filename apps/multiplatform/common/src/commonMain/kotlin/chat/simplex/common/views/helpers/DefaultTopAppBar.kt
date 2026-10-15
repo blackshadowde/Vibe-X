@@ -103,7 +103,7 @@ fun DefaultAppBar(
         },
         navigationIcon = navigationButton,
         buttons = if (!showSearch) buttons else {{}},
-        centered = !showSearch && (title != null || !onTop),
+        centered = !chat.simplex.common.views.vibe.vibeStyle && !showSearch && (title != null || !onTop),
         onTop = onTop,
       )
       if (!chat.simplex.common.views.vibe.vibeStyle) AppBarDivider(onTop, title != null || fixedTitleText != null, connection)

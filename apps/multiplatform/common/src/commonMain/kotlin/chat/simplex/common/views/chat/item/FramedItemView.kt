@@ -2,6 +2,7 @@ package chat.simplex.common.views.chat.item
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -272,7 +273,7 @@ fun FramedItemView(
               if (vibeRow) VibeLivePill() else FramedItemHeader(stringResource(MR.strings.live), false)
             }
           }
-          if (ci.quotedItem != null) {
+          if (ci.quotedItem != null && !vibeRow) {
             Column(
               Modifier
                 .combinedClickable(
@@ -385,11 +386,17 @@ fun FramedItemView(
           }
         }
       }
+      if (vibeRow) {
+        // Vibe: ticks sit right after the text (see CIMarkdownText); media without text gets them here
+        if (ci.content.text.isEmpty() && ci.chatDir.sent) {
+          VibeTicks(ci, Modifier.padding(start = 4.dp, bottom = 4.dp).background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(8.dp)).padding(horizontal = 4.dp))
+        }
+      } else
       Box(
         Modifier
           .padding(
-            bottom = if (vibeRow) 2.dp else 6.dp,
-            end = if (vibeRow) 0.dp else 12.dp + if (tailRendered && sent) msgTailWidthDp else 0.dp,
+            bottom = 6.dp,
+            end = 12.dp + if (tailRendered && sent) msgTailWidthDp else 0.dp,
           )
       ) {
         CIMetaView(ci, chatTTL, metaColor, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
@@ -421,7 +428,26 @@ fun CIMarkdownText(
     Box(Modifier.padding(vertical = 2.dp)) { VibeLiveText(text) }
     return
   }
-  Box(Modifier.padding(vertical = if (vibeRow) 2.dp else 7.dp, horizontal = if (vibeRow) 0.dp else 12.dp).then(selection.positionModifier)) {
+  if (vibeRow) {
+    Row(Modifier.padding(vertical = 2.dp).then(selection.positionModifier), verticalAlignment = Alignment.Bottom) {
+      Box(Modifier.weight(1f, fill = false)) {
+        MarkdownText(
+          text, if (text.isEmpty()) emptyList() else ci.formattedText, toggleSecrets = true,
+          sendCommandMsg = if (chatInfo.useCommands && chat.chatInfo.sndReady) { { msg -> sendCommandMsg(chatsCtx, chat, msg) } } else null,
+          meta = null, chatTTL = chatTTL, linkMode = linkMode,
+          mentions = ci.mentions, userMemberId = (chatInfo as? ChatInfo.Group)?.groupInfo?.membership?.memberId,
+          uriHandler = uriHandler, senderBold = true, onLinkLongClick = onLinkLongClick, showViaProxy = false, showTimestamp = false, prefix = prefix,
+          stripLink = stripLink,
+          style = MaterialTheme.typography.body1.copy(color = MaterialTheme.colors.onSurface, fontSize = 16.sp, lineHeight = 22.sp),
+          selectionRange = selection.highlightRange,
+          onTextLayoutResult = selection.onTextLayoutResult
+        )
+      }
+      VibeTicks(ci, Modifier.padding(start = 6.dp, bottom = 3.dp))
+    }
+    return
+  }
+  Box(Modifier.padding(vertical = 7.dp, horizontal = 12.dp).then(selection.positionModifier)) {
     MarkdownText(
       text, if (text.isEmpty()) emptyList() else ci.formattedText, toggleSecrets = true,
       sendCommandMsg = if (chatInfo.useCommands && chat.chatInfo.sndReady) { { msg -> sendCommandMsg(chatsCtx, chat, msg) } } else null,

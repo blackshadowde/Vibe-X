@@ -955,6 +955,7 @@ fun ChatLayout(
   availableContent: State<List<ContentFilter>>,
   searchPlaceholder: String?
 ) {
+  if (chatsCtx.secondaryContextFilter == null) SideEffect { VibeNav.back = back }
   val chatInfo = remember { derivedStateOf { chat.value?.chatInfo } }
   val scope = rememberCoroutineScope()
   val attachmentDisabled = remember { derivedStateOf { composeState.value.attachmentDisabled } }
@@ -984,7 +985,7 @@ fun ChatLayout(
       sheetShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
     ) {
       val composeViewHeight = remember { mutableStateOf(0.dp) }
-      Box(Modifier.fillMaxSize().chatViewBackgroundModifier(MaterialTheme.colors, MaterialTheme.wallpaper, LocalAppBarHandler.current?.backgroundGraphicsLayerSize, LocalAppBarHandler.current?.backgroundGraphicsLayer, drawWallpaper = chatsCtx.secondaryContextFilter == null)) {
+      Box(Modifier.fillMaxSize().chatViewBackgroundModifier(MaterialTheme.colors, MaterialTheme.wallpaper, LocalAppBarHandler.current?.backgroundGraphicsLayerSize, LocalAppBarHandler.current?.backgroundGraphicsLayer, drawWallpaper = chatsCtx.secondaryContextFilter == null && !vibeStyle)) {
         val remoteHostId = remember { remoteHostId }.value
         val chat = remember { chat }.value
         val chatInfo = chat?.chatInfo
@@ -1426,7 +1427,7 @@ fun BoxScope.ChatInfoToolbar(
 
   DefaultAppBar(
     navigationButton = { if (appPlatform.isAndroid || showSearch.value) { NavigationButtonBack(onBackClicked) }  },
-    title = { ChatInfoToolbarTitle(chatInfo) },
+    title = { if (vibeStyle) VibeChatTitle(chatInfo, onAvatar = { if (chatInfo !is ChatInfo.Local) info() }) else ChatInfoToolbarTitle(chatInfo) },
     onTitleClick = if (chatInfo is ChatInfo.Local) null else info,
     showSearch = showSearch.value,
     searchAlwaysVisible = contentFilter.value != null,
@@ -1912,6 +1913,7 @@ fun BoxScope.ChatItemsList(
     previousItemSeparationLargeGap: Boolean,
     revealed: State<Boolean>,
     vibeHeader: Boolean = true,
+    vibeLast: Boolean = true,
     vibeNew: Boolean = false,
     reveal: (Boolean) -> Unit
   ) {
@@ -2006,23 +2008,36 @@ fun BoxScope.ChatItemsList(
 
         if (vibeStyle && cItem.isVibeRow()) {
           val selectionVisible = selectedChatItems.value != null && cItem.canBeDeletedForSelf
+          val canReply = (cItem.content is CIContent.SndMsgContent || cItem.content is CIContent.RcvMsgContent) &&
+            chatInfo !is ChatInfo.Local && !cItem.isReport && !cItem.meta.isLive && cItem.meta.itemDeleted == null &&
+            chatInfo.sendMsgEnabled && !selectionVisible
           Box(Modifier.vibeSweepIn(cItem)) {
             CompositionLocalProvider(LocalVibeRows provides true) {
               VibeMessageRow(
-                chatInfo, cItem, vibeHeader,
+                chatInfo, cItem, first = vibeHeader, last = vibeLast,
                 onAvatarClick = {
                   val d = cItem.chatDir
                   if (d is CIDirection.GroupRcv && chatInfo is ChatInfo.Group) showMemberInfo(chatInfo.groupInfo, d.groupMember)
                   else if (!d.sent) showChatInfo()
                 },
-                modifier = if (selectionVisible) Modifier else swipeableModifier,
+                onReply = if (canReply) ({
+                  if (composeState.value.editing) {
+                    composeState.value = ComposeState(contextItem = ComposeContextItem.QuotedItem(cItem), useLinkPreviews = useLinkPreviews)
+                  } else {
+                    composeState.value = composeState.value.copy(contextItem = ComposeContextItem.QuotedItem(cItem))
+                  }
+                }) else null,
+                onQuoteClick = {
+                  val qid = cItem.quotedItem?.itemId
+                  if (qid != null) scrollToItem(qid) else scrollToQuotedItemFromItem(cItem.id)
+                },
               ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                   AnimatedVisibility(selectionVisible, enter = fadeIn(), exit = fadeOut()) {
                     SelectedListItem(Modifier.padding(end = 6.dp), cItem.id, selectedChatItems)
                   }
                   Box(Modifier.weight(1f)) {
-                    ChatItemViewShortHand(cItem, itemSeparation.copy(timestamp = false), range, swipeOffset = dismissState.offset.value)
+                    ChatItemViewShortHand(cItem, itemSeparation.copy(timestamp = false), range)
                   }
                 }
               }
@@ -2261,7 +2276,7 @@ fun BoxScope.ChatItemsList(
         }
       }
       if (itemSeparation.date != null) {
-        DateSeparator(itemSeparation.date)
+        if (vibeStyle) VibeDateDivider(itemSeparation.date) else DateSeparator(itemSeparation.date)
       }
       ChatItemView(cItem, range, itemSeparation, previousItemSeparationLargeGap)
       if (vibeNew) {
@@ -2424,7 +2439,13 @@ fun BoxScope.ChatItemsList(
       val listItem = merged.newest()
       val item = listItem.item
 
-      if (item.content is CIContent.ChatBanner) {
+      if (item.content is CIContent.ChatBanner && vibeStyle) {
+        Column {
+          VibeChatIntro(chatInfo)
+          val prevItem = listItem.prevItem
+          if (prevItem != null) VibeDateDivider(prevItem.meta.itemTs)
+        }
+      } else if (item.content is CIContent.ChatBanner) {
         Column {
           Box(
             contentAlignment = Alignment.Center,
@@ -2438,7 +2459,7 @@ fun BoxScope.ChatItemsList(
 
           val prevItem = listItem.prevItem
           if (prevItem != null) {
-            DateSeparator(prevItem.meta.itemTs)
+            if (vibeStyle) VibeDateDivider(prevItem.meta.itemTs) else DateSeparator(prevItem.meta.itemTs)
           }
         }
       } else {
@@ -2452,6 +2473,7 @@ fun BoxScope.ChatItemsList(
         val showAvatar = shouldShowAvatar(item, merged.oldest().nextItem)
         val olderItem = merged.oldest().nextItem
         val vibeHeader = vibeStyle && vibeStartsBlock(item, olderItem)
+        val vibeLast = vibeStyle && vibeEndsBlock(item, listItem.prevItem)
         if (vibeStyle && vibeNewMarker.value == null && item.isRcvNew && (olderItem == null || !olderItem.isRcvNew) && !item.vibeJustArrived(15)) {
           SideEffect { if (vibeNewMarker.value == null) vibeNewMarker.value = item.id }
         }
@@ -2468,14 +2490,17 @@ fun BoxScope.ChatItemsList(
           prevItemSeparationLargeGap = false
         }
         CompositionLocalProvider(LocalItemContext provides ItemContext(selectionIndex = index)) {
-          ChatViewListItem(index == 0, rememberUpdatedState(range), showAvatar, item, itemSeparation, prevItemSeparationLargeGap, isRevealed, vibeHeader, vibeStyle && vibeNewMarker.value == item.id) {
+          if (vibeStyle && item.vibeHidden()) {
+            if (itemSeparation.date != null) VibeDateDivider(itemSeparation.date)
+          } else
+          ChatViewListItem(index == 0, rememberUpdatedState(range), showAvatar, item, itemSeparation, prevItemSeparationLargeGap, isRevealed, vibeHeader, vibeLast, vibeStyle && vibeNewMarker.value == item.id) {
             if (merged is MergedItem.Grouped) merged.reveal(it, revealedItems)
           }
         }
 
         if (last != null) {
           // no using separate item(){} block in order to have total number of items in LazyColumn match number of merged items
-          DateSeparator(last.meta.itemTs)
+          if (vibeStyle) VibeDateDivider(last.meta.itemTs) else DateSeparator(last.meta.itemTs)
         }
         if (item.isRcvNew) {
           val itemIds = when (merged) {

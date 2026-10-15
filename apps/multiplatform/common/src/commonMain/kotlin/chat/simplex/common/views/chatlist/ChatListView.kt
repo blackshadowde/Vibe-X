@@ -62,7 +62,9 @@ sealed class ActiveFilter {
   data object Unread: ActiveFilter()
 }
 
-private fun showNewChatSheet(oneHandUI: State<Boolean>) {
+fun showNewChatSheet() = showNewChatSheet(appPrefs.oneHandUI.state)
+
+fun showNewChatSheet(oneHandUI: State<Boolean>) {
   connectProgressManager.cancelConnectProgress()
   ModalManager.start.closeModals()
   ModalManager.end.closeModals()

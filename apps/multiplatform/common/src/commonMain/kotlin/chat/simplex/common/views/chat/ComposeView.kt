@@ -1244,10 +1244,11 @@ fun ComposeView(
   fun contextItemView() {
     when (val contextItem = composeState.value.contextItem) {
       ComposeContextItem.NoContextItem -> {}
-      is ComposeContextItem.QuotedItem -> ContextItemView(listOf(contextItem.chatItem), painterResource(MR.images.ic_reply), chatInfo = chat.chatInfo) {
+      // Vibe shows these as "Replying to …" / "Editing message" inside the input pill
+      is ComposeContextItem.QuotedItem -> if (!vibeStyle) ContextItemView(listOf(contextItem.chatItem), painterResource(MR.images.ic_reply), chatInfo = chat.chatInfo) {
         composeState.value = composeState.value.copy(contextItem = ComposeContextItem.NoContextItem)
       }
-      is ComposeContextItem.EditingItem -> ContextItemView(listOf(contextItem.chatItem), painterResource(MR.images.ic_edit_filled),  chatInfo = chat.chatInfo) {
+      is ComposeContextItem.EditingItem -> if (!vibeStyle) ContextItemView(listOf(contextItem.chatItem), painterResource(MR.images.ic_edit_filled),  chatInfo = chat.chatInfo) {
         clearState()
       }
       is ComposeContextItem.ForwardingItems -> ContextItemView(contextItem.chatItems, painterResource(MR.images.ic_forward), showSender = false,  chatInfo = chat.chatInfo) {
@@ -1303,6 +1304,16 @@ fun ComposeView(
           && sendMsgEnabled.value
           && !isGroupAndProhibitedFiles
           && !nextSendGrpInv.value
+    if (vibeStyle) {
+      Box(
+        Modifier.size(44.dp).clip(CircleShape).background(VibeColors.highest())
+          .clickable(enabled = attachmentEnabled, onClick = attachmentClicked),
+        contentAlignment = Alignment.Center
+      ) {
+        Icon(VibeIcons.Add, null, Modifier.size(26.dp), tint = if (attachmentEnabled) VibeColors.onSurface() else VibeColors.onVariant())
+      }
+      return
+    }
     IconButton(
       attachmentClicked,
       enabled = attachmentEnabled
@@ -1454,7 +1465,8 @@ fun ComposeView(
   fun SendMsgView_(
     disableSendButton: Boolean,
     placeholder: String? = null,
-    sendToConnect: (() -> Unit)? = null
+    sendToConnect: (() -> Unit)? = null,
+    vibe: Boolean = false,
   ) {
     val timedMessageAllowed = remember(chat.chatInfo) { chat.chatInfo.featureEnabled(ChatFeature.TimedMessages) }
     val sendButtonColor =
@@ -1501,6 +1513,21 @@ fun ComposeView(
         sendMessage(null)
         resetLinkPreview()
       },
+      vibeLeading = if (vibe) ({ AttachmentAndCommandsButtons() }) else null,
+      vibeTop = if (vibe) ({
+        val ctx = composeState.value.contextItem
+        val user = chatModel.currentUser.value
+        when (ctx) {
+          is ComposeContextItem.QuotedItem -> {
+            val ci = ctx.chatItem
+            val d = ci.chatDir
+            val name = if (d is CIDirection.GroupRcv) d.groupMember.displayName else if (d.sent) user?.displayName ?: "yourself" else chat.chatInfo.displayName
+            VibeReplyDisplay("Replying to ", name) { composeState.value = composeState.value.copy(contextItem = ComposeContextItem.NoContextItem) }
+          }
+          is ComposeContextItem.EditingItem -> VibeReplyDisplay(null, "Editing message") { clearState() }
+          else -> VibeReplyDisplay(null, null) {}
+        }
+      }) else null,
       updateLiveMessage = ::updateLiveMessage,
       cancelLiveMessage = {
         composeState.value = composeState.value.copy(liveMessage = null)
@@ -1832,20 +1859,15 @@ fun ComposeView(
           groupDirectInv = chat.chatInfo.contact.groupDirectInv
         )
       } else {
-        Row(
-          if (vibeStyle) Modifier
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colors.surface)
-            .padding(end = 6.dp)
-          else Modifier.padding(end = 8.dp),
-          verticalAlignment = Alignment.Bottom
-        ) {
+        val broadcastPlaceholder = (chat.chatInfo as? ChatInfo.Group)?.groupInfo?.let { gi ->
+          if (gi.useRelays && gi.membership.memberRole >= GroupMemberRole.Owner && chat.chatInfo.groupChatScope() == null) generalGetString(MR.strings.compose_view_broadcast)
+          else null
+        }
+        if (vibeStyle) {
+          SendMsgView_(disableSendButton = disableSendButton, placeholder = broadcastPlaceholder ?: "# Message | ${chat.chatInfo.displayName}", vibe = true)
+        } else
+        Row(Modifier.padding(end = 8.dp), verticalAlignment = Alignment.Bottom) {
           AttachmentAndCommandsButtons()
-          val broadcastPlaceholder = (chat.chatInfo as? ChatInfo.Group)?.groupInfo?.let { gi ->
-            if (gi.useRelays && gi.membership.memberRole >= GroupMemberRole.Owner && chat.chatInfo.groupChatScope() == null) generalGetString(MR.strings.compose_view_broadcast)
-            else null
-          }
           SendMsgView_(disableSendButton = disableSendButton, placeholder = broadcastPlaceholder)
         }
       }

@@ -4,7 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -22,25 +22,44 @@ import androidx.compose.ui.unit.sp
 import chat.simplex.common.ui.theme.VibeBlurple
 import kotlinx.coroutines.delay
 
-private val chipShape = RoundedCornerShape(10.dp)
+private val chipShape = RoundedCornerShape(9.dp)
 
-/** Discord's reaction pill: blurple outline when it's yours. */
+/** Vibe's reaction chip: dark pill, outlined when it's yours. */
 @Composable
 fun Modifier.vibeReactionChip(mine: Boolean): Modifier {
-  val bg by animateColorAsState(
-    if (mine) VibeBlurple.copy(alpha = 0.22f) else MaterialTheme.colors.onBackground.copy(alpha = 0.07f),
-    tween(220), label = "chipBg"
-  )
-  val edge by animateColorAsState(
-    if (mine) VibeBlurple else MaterialTheme.colors.onBackground.copy(alpha = 0.0f),
-    tween(220), label = "chipEdge"
-  )
+  val bg = VibeColors.secondaryContainer()
+  val edge by animateColorAsState(if (mine) VibeColors.onVariant() else bg, tween(220), label = "chipEdge")
   return this
-    .padding(end = 6.dp, top = 4.dp)
     .vibePopIn(0)
     .clip(chipShape)
     .background(bg)
     .border(1.dp, edge, chipShape)
+}
+
+/** Space around a chip, and the count as a small blurple badge on its corner (when more than one). */
+@Composable
+fun VibeChipBox(vibe: Boolean, count: Int, content: @Composable () -> Unit) {
+  if (!vibe) { content(); return }
+  Box(Modifier.padding(end = 6.dp, top = 6.dp)) {
+    content()
+    androidx.compose.animation.AnimatedVisibility(
+      count > 1,
+      Modifier.align(androidx.compose.ui.Alignment.TopEnd).offset(x = 7.dp, y = (-7).dp),
+      enter = scaleIn(spring(dampingRatio = 0.45f, stiffness = 500f)), exit = scaleOut()
+    ) {
+      Box(
+        Modifier.defaultMinSize(minWidth = 16.dp).height(16.dp).clip(RoundedCornerShape(8.dp))
+          .background(VibeColors.blurple.copy(alpha = 0.8f)).padding(horizontal = 4.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+      ) {
+        AnimatedContent(count, transitionSpec = {
+          (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut())
+        }, label = "badge") { n ->
+          Text("$n", fontSize = 10.sp, color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.SemiBold)
+        }
+      }
+    }
+  }
 }
 
 /** Springs in from nothing, [index] staggers a row of them. */

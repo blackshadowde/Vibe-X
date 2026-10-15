@@ -61,6 +61,8 @@ fun SendMsgView(
   cancelLiveMessage: (() -> Unit)? = null,
   autoLive: Boolean = false,
   sendWithEffect: ((VibeEffect) -> Unit)? = null,
+  vibeLeading: (@Composable () -> Unit)? = null,
+  vibeTop: (@Composable () -> Unit)? = null,
   editPrevMessage: () -> Unit,
   onFilesPasted: (List<URI>) -> Unit,
   onMessageChange: (ComposeMessage) -> Unit,
@@ -69,7 +71,7 @@ fun SendMsgView(
   ) {
   val showCustomDisappearingMessageDialog = remember { mutableStateOf(false) }
   val padding = if (appPlatform.isAndroid) PaddingValues(vertical = 8.dp) else PaddingValues(top = 3.dp, bottom = 4.dp)
-  Box(Modifier.padding(padding)) {
+  run {
     val cs = composeState.value
     val showVoiceButton = !nextConnect && cs.message.text.isEmpty() && showVoiceRecordIcon && !composeState.value.editing &&
         !composeState.value.forwarding && cs.liveMessage == null && (cs.preview is ComposePreview.NoPreview || recState.value is RecordingState.Started) && (cs.contextItem !is ComposeContextItem.ReportedItem)
@@ -79,6 +81,8 @@ fun SendMsgView(
         cs.endLiveDisabled ||
         !sendButtonEnabled
     val clicksOnTextFieldDisabled = !sendMsgEnabled || cs.preview is ComposePreview.VoicePreview || cs.inProgress
+    @Composable
+    fun BoxScope.TextFieldArea() {
     PlatformTextField(
       composeState,
       sendMsgEnabled,
@@ -123,7 +127,9 @@ fun SendMsgView(
     if (showDeleteTextButton.value) {
       DeleteTextButton(composeState)
     }
-    Box(Modifier.align(Alignment.BottomEnd).padding(bottom = if (appPlatform.isAndroid) 0.dp else 5.sp.toDp() * fontSizeSqrtMultiplier)) {
+    }
+    @Composable
+    fun ButtonsArea() {
       val sendButtonSize = remember { Animatable(36f) }
       val sendButtonAlpha = remember { Animatable(1f) }
       val scope = rememberCoroutineScope()
@@ -138,6 +144,7 @@ fun SendMsgView(
           (c.contextItem is ComposeContextItem.NoContextItem || c.contextItem is ComposeContextItem.QuotedItem) &&
           c.preview is ComposePreview.NoPreview && sendMsgEnabled && !nextConnect && sendToConnect == null
         ) {
+          if (!liveMessageAlertShown.state.value) liveMessageAlertShown.set(true)
           startLiveMessage(scope, sendLiveMessage, updateLiveMessage, sendButtonSize, sendButtonAlpha, composeState, liveMessageAlertShown)
         }
       }
@@ -170,7 +177,7 @@ fun SendMsgView(
               else ->
                 RecordVoiceView(recState, stopRecOnNextClick)
             }
-            if (sendLiveMessage != null
+            if (vibeLeading == null && sendLiveMessage != null
               && updateLiveMessage != null
               && (cs.preview !is ComposePreview.VoicePreview || !stopRecOnNextClick.value)
               && cs.contextItem is ComposeContextItem.NoContextItem
@@ -282,7 +289,7 @@ fun SendMsgView(
           if (!hideSendButton) {
             val menuItems = MenuItems()
             if (menuItems.isNotEmpty()) {
-              SendMsgButton(icon, sendButtonSize, sendButtonAlpha, sendButtonColor, !sendMsgButtonDisabled, sendToConnect, sendMessage) { showDropdown.value = true }
+              SendMsgButton(icon, sendButtonSize, sendButtonAlpha, sendButtonColor, !sendMsgButtonDisabled, sendToConnect, sendMessage, vibe = vibeLeading != null) { showDropdown.value = true }
               DefaultDropdownMenu(showDropdown) {
                 menuItems.forEach { composable -> composable() }
               }
@@ -292,10 +299,47 @@ fun SendMsgView(
                 customDisappearingMessageTimePref = customDisappearingMessageTimePref
               )
             } else {
-              SendMsgButton(icon, sendButtonSize, sendButtonAlpha, sendButtonColor, !sendMsgButtonDisabled, sendToConnect, sendMessage)
+              SendMsgButton(icon, sendButtonSize, sendButtonAlpha, sendButtonColor, !sendMsgButtonDisabled, sendToConnect, sendMessage, vibe = vibeLeading != null)
             }
           }
         }
+      }
+    }
+    if (vibeLeading == null) {
+      Box(Modifier.padding(padding)) {
+        TextFieldArea()
+        Box(Modifier.align(Alignment.BottomEnd).padding(bottom = if (appPlatform.isAndroid) 0.dp else 5.sp.toDp() * fontSizeSqrtMultiplier)) {
+          ButtonsArea()
+        }
+      }
+    } else {
+      // Vibe's input: a pill (+, text, live toggle) and a big round send / voice button beside it
+      Row(verticalAlignment = Alignment.Bottom) {
+        Column(
+          Modifier
+            .weight(1f)
+            .padding(start = 10.dp, top = 6.dp, bottom = 8.dp)
+            .clip(RoundedCornerShape(32.dp))
+            .background(VibeColors.container())
+            .padding(start = 6.dp, top = 4.dp, end = 2.dp, bottom = 4.dp)
+        ) {
+          vibeTop?.invoke()
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            vibeLeading()
+            Box(Modifier.weight(1f).padding(start = 12.dp, end = 4.dp)) {
+              TextFieldArea()
+            }
+            if (sendLiveMessage != null) VibeLiveToggle()
+          }
+        }
+        Spacer(Modifier.width(8.dp))
+        Box(
+          Modifier.padding(top = 6.dp, bottom = 8.dp).size(56.dp).clip(CircleShape).background(VibeColors.sendBg),
+          contentAlignment = Alignment.Center
+        ) {
+          ButtonsArea()
+        }
+        Spacer(Modifier.width(10.dp))
       }
     }
   }
@@ -496,8 +540,24 @@ private fun SendMsgButton(
   enabled: Boolean,
   sendToConnect: (() -> Unit)?,
   sendMessage: (Int?) -> Unit,
+  vibe: Boolean = false,
   onLongClick: (() -> Unit)? = null
 ) {
+  if (vibe) {
+    Box(
+      Modifier.requiredSize(56.dp).clip(CircleShape)
+        .combinedClickable(
+          onClick = { if (sendToConnect != null) sendToConnect() else sendMessage(null) },
+          onLongClick = onLongClick,
+          enabled = enabled,
+          role = Role.Button,
+        ),
+      contentAlignment = Alignment.Center
+    ) {
+      Icon(VibeIcons.Send, stringResource(MR.strings.icon_descr_send_message), Modifier.size(24.dp), tint = if (enabled) VibeColors.sendFg else VibeColors.sendFg.copy(alpha = 0.4f))
+    }
+    return
+  }
   val interactionSource = remember { MutableInteractionSource() }
   val ripple = remember { ripple(bounded = false, radius = 24.dp) }
   Box(

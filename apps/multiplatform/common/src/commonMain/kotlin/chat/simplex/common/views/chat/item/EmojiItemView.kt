@@ -39,7 +39,7 @@ fun EmojiItemView(chatItem: ChatItem, timedMessagesTTL: Int?, showViaProxy: Bool
     } else {
       EmojiText(chatItem.content.text)
     }
-    CIMetaView(chatItem, timedMessagesTTL, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
+    if (vibeRow) chat.simplex.common.views.vibe.VibeTicks(chatItem) else CIMetaView(chatItem, timedMessagesTTL, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
   }
 }
 

@@ -64,63 +64,68 @@ fun vibeTimestamp(ts: Instant): String {
   }
 }
 
-/** Stable name colour per person in groups, so you can tell people apart. */
-private val nameColors = listOf(
-  Color(0xFFF47B67), Color(0xFF3BA55C), Color(0xFFFAA61A), Color(0xFFEB459E),
-  Color(0xFF45DDC0), Color(0xFF8B9CFF), Color(0xFFE67E22), Color(0xFF1ABC9C),
-)
+@Composable
+private fun senderName(chatInfo: ChatInfo, item: ChatItem): Pair<String, String?> {
+  val user = chatModel.currentUser.value
+  return when (val d = item.chatDir) {
+    is CIDirection.GroupRcv -> d.groupMember.displayName to d.groupMember.image
+    is CIDirection.GroupSnd -> if (chatInfo is ChatInfo.Group) chatInfo.groupInfo.membership.displayName to chatInfo.groupInfo.membership.image else (user?.displayName ?: "You") to user?.image
+    is CIDirection.ChannelRcv -> chatInfo.displayName to chatInfo.image
+    else -> if (item.chatDir.sent) (user?.displayName ?: "You") to user?.image else chatInfo.displayName to chatInfo.image
+  }
+}
 
+/**
+ * One message, laid out like Vibe's: avatar (40) and a header (name, time)
+ * on the first message of a block, text under it, left aligned, no bubble.
+ * A reply starts a new block with the curved reply line above it.
+ */
 @Composable
 fun VibeMessageRow(
   chatInfo: ChatInfo,
   item: ChatItem,
-  header: Boolean,
+  first: Boolean,
+  last: Boolean,
   onAvatarClick: () -> Unit,
+  onReply: (() -> Unit)?,
+  onQuoteClick: () -> Unit,
   modifier: Modifier = Modifier,
   content: @Composable () -> Unit,
 ) {
-  val glow by animateColorAsState(
-    if (item.isRcvNew) VibeBlurple.copy(alpha = 0.10f) else Color.Transparent,
-    tween(900), label = "unreadGlow"
-  )
-  val user = chatModel.currentUser.value
-  Row(
+  val quote = item.quotedItem
+  val header = first || quote != null
+  val (name, image) = senderName(chatInfo, item)
+  Column(
     modifier
       .fillMaxWidth()
-      .background(glow)
-      .padding(start = 12.dp, end = 12.dp, top = if (header) 12.dp else 1.dp, bottom = 1.dp)
+      .vibeSwipeReply(onReply != null) { onReply?.invoke() }
+      .padding(start = 12.dp, end = 12.dp, top = if (header) 10.dp else 0.dp, bottom = if (last) 4.dp else 0.dp)
   ) {
-    Box(Modifier.width(40.dp)) {
-      if (header) {
-        Box(Modifier.size(40.dp).clip(CircleShape).clickable(onClick = onAvatarClick)) {
-          when (val d = item.chatDir) {
-            is CIDirection.GroupRcv -> MemberProfileImage(40.dp, d.groupMember, backgroundColor = MaterialTheme.colors.background)
-            is CIDirection.GroupSnd -> if (chatInfo is ChatInfo.Group) MemberProfileImage(40.dp, chatInfo.groupInfo.membership, backgroundColor = MaterialTheme.colors.background) else ProfileImage(40.dp, user?.image)
-            is CIDirection.ChannelRcv -> ChatInfoImage(chatInfo, 40.dp)
-            else -> if (item.chatDir.sent) ProfileImage(40.dp, user?.image) else ChatInfoImage(chatInfo, 40.dp)
+    if (quote != null) VibeReplyStrip(quote, chatInfo, onQuoteClick)
+    Row {
+      Box(Modifier.width(40.dp)) {
+        if (header) VibeAvatar(image, name, 40.dp, Modifier.clickable(onClick = onAvatarClick))
+      }
+      Spacer(Modifier.width(12.dp))
+      Column(Modifier.weight(1f)) {
+        if (header) {
+          val color = when {
+            item.chatDir.sent -> VibeColors.ownName()
+            chatInfo is ChatInfo.Group -> vibeNameColor(name)
+            else -> VibeColors.otherName()
+          }
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(vibeTime(item.meta.itemTs), fontSize = 12.sp, color = VibeColors.onVariant(), maxLines = 1)
+            if (item.meta.itemEdited) {
+              Spacer(Modifier.width(6.dp))
+              Text("(edited)", fontSize = 12.sp, color = VibeColors.onVariant())
+            }
           }
         }
-      } else if (item.isRcvNew) {
-        // a small unread light where the avatar would be
-        Box(Modifier.padding(top = 9.dp).align(Alignment.TopCenter).size(6.dp).clip(CircleShape).background(VibeBlurple))
+        content()
       }
-    }
-    Spacer(Modifier.width(12.dp))
-    Column(Modifier.weight(1f)) {
-      if (header) {
-        val (name, color) = when (val d = item.chatDir) {
-          is CIDirection.GroupRcv -> d.groupMember.displayName to nameColors[(d.groupMember.memberId.hashCode() and 0x7fffffff) % nameColors.size]
-          is CIDirection.GroupSnd -> (if (chatInfo is ChatInfo.Group) chatInfo.groupInfo.membership.displayName else user?.displayName ?: "You") to MaterialTheme.colors.onBackground
-          is CIDirection.ChannelRcv -> chatInfo.displayName to MaterialTheme.colors.onBackground
-          else -> (if (item.chatDir.sent) user?.displayName ?: "You" else chatInfo.displayName) to MaterialTheme.colors.onBackground
-        }
-        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(bottom = 1.dp)) {
-          Text(name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, false))
-          Spacer(Modifier.width(8.dp))
-          Text(vibeTimestamp(item.meta.itemTs), fontSize = 12.sp, color = MaterialTheme.colors.secondary, maxLines = 1, modifier = Modifier.padding(bottom = 2.dp))
-        }
-      }
-      content()
     }
   }
 }
@@ -137,4 +142,17 @@ fun VibeNewDivider() {
       modifier = Modifier.clip(RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp)).background(red).padding(horizontal = 5.dp, vertical = 1.dp)
     )
   }
+}
+
+/** Ends a block (bottom padding): the newer message starts a new one. */
+fun vibeEndsBlock(item: ChatItem, newer: ChatItem?): Boolean =
+  newer == null || !newer.isVibeRow() || newer.quotedItem != null || vibeStartsBlock(newer, item)
+
+/** Items Vibe doesn't show (the intro at the top says it once). */
+fun ChatItem.vibeHidden(): Boolean = when (content) {
+  is CIContent.SndDirectE2EEInfo, is CIContent.RcvDirectE2EEInfo,
+  is CIContent.SndGroupE2EEInfo, is CIContent.RcvGroupE2EEInfo,
+  is CIContent.RcvChatFeature, is CIContent.SndChatFeature,
+  is CIContent.RcvGroupFeature, is CIContent.SndGroupFeature -> true
+  else -> false
 }
