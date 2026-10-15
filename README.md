@@ -36,9 +36,21 @@ It looks and feels like [Vibe](https://github.com/blackshadowde/Vibe-flutter): a
 - Disappearing messages
 - Audio and video calls (WebRTC)
 
+**Made for real life**
+- 💭 **Custom status** with "Clear after", and your **local time** for friends ("2:14 AM for Ashish")
+- 🗓 **Send later:** long-press send and schedule a message
+- 🔒 **Locked chats** that open only with your fingerprint or PIN, with hidden notifications
+- 🗄 **Archived chats** and **folders** in the rail, like Discord servers
+- 📶 **Low data mode**, 💾 **save received media to your gallery**, and a **storage & cache** page
+- 🔔 An **activity pill** when someone writes in another chat
+- 🌐 **Find public groups** through SimpleX's directory
+- 👋 **Log out / log in** with an encrypted backup file
+
 **The Vibe look**
 - Discord-style palette in light and dark mode, with text size and haptics settings
 - Profile pages with a full-width picture header
+- Google Messages style photo viewer with a thumbnail strip, Discord-style link cards
+- Voice and video calls in Vibe's look
 - Slide-up panes instead of pop-up menus
 - In-app updates: new versions download and install from inside the app
 
