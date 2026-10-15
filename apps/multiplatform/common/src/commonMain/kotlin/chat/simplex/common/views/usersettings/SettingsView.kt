@@ -122,7 +122,9 @@ fun SettingsLayout(
             Box(Modifier.size(10.dp).clip(androidx.compose.foundation.shape.CircleShape).background(chat.simplex.common.views.vibe.VibeColors.red))
           }
         }
+        SettingsActionItem(painterResource(MR.images.ic_chat_bubble), "Chat", showSettingsModal { chat.simplex.common.views.vibe.VibeChatSettingsView() })
         SettingsActionItem(painterResource(MR.images.ic_info), "About Vibe X", showSettingsModal { chat.simplex.common.views.vibe.VibeAboutView() })
+        SettingsActionItem(painterResource(MR.images.ic_logout), "Log out", { chat.simplex.common.views.vibe.VibeAccount.showLogOut() }, textColor = chat.simplex.common.views.vibe.VibeColors.red, iconColor = chat.simplex.common.views.vibe.VibeColors.red, disabled = stopped && chatModel.currentUser.value == null)
         SettingsActionItem(painterResource(MR.images.ic_heart), "Support Vibe X", showSettingsModal { chat.simplex.common.views.vibe.VibeSupportView() }, textColor = chat.simplex.common.views.vibe.VibeColors.blurple, iconColor = chat.simplex.common.views.vibe.VibeColors.red)
       }
       SectionDividerSpaced()

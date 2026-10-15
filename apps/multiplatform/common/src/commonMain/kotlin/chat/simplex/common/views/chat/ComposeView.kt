@@ -1512,6 +1512,22 @@ fun ComposeView(
       },
       sendLiveMessage = if (chat.chatInfo.chatType != ChatType.Local) ::sendLiveMessage else null,
       autoLive = vibeStyle && chat.chatInfo.chatType != ChatType.Local,
+      sendLater = if (!vibeStyle || chat.chatInfo.chatType == ChatType.Local) null else { at: Long ->
+        val cs = composeState.value
+        if (cs.message.text.isNotBlank() && !cs.editing && cs.preview is ComposePreview.NoPreview) {
+          val lm = cs.liveMessage
+          val quoted = (cs.contextItem as? ComposeContextItem.QuotedItem)?.chatItem?.id
+          VibeScheduled.add(chat, cs.message.text, at, quoted)
+          // live typing (or typing dots) already went out: take it back
+          if (lm != null && lm.sent) {
+            val info = chat.chatInfo
+            withBGApi {
+              runCatching { chatModel.controller.apiDeleteChatItems(chat.remoteHostId, info.chatType, info.apiId, info.groupChatScope(), listOf(lm.chatItem.id), CIDeleteMode.cidmBroadcast) }
+            }
+          }
+          clearState()
+        }
+      },
       sendWithEffect = if (!vibeStyle) null else { effect: VibeEffect ->
         val cs = composeState.value
         if (cs.message.text.isNotBlank()) {
@@ -1813,6 +1829,7 @@ fun ComposeView(
       }
     }
 
+    if (vibeStyle) VibeScheduledBar(chat)
     Surface(color = MaterialTheme.colors.background, contentColor = MaterialTheme.colors.onBackground) {
       if (!vibeStyle) Divider()
       if (chat.chatInfo is ChatInfo.Group && chat.chatInfo.groupInfo.nextConnectPrepared) {

@@ -52,6 +52,8 @@ import kotlinx.coroutines.launch
 object VibeRail {
   /** The chat whose pane is open in the middle (null = the list). */
   val selected = mutableStateOf<String?>(null)
+  /** The folder (SimpleX chat list) shown in the middle, null = all chats. */
+  val folder = mutableStateOf<Long?>(null)
 }
 
 private val RailWidth = 72.dp
@@ -124,7 +126,7 @@ private fun isGroup(c: Chat) = c.chatInfo is ChatInfo.Group
 
 /** People and groups in the rail, pinned first; groups after people (like Discord's servers). */
 private fun railChats(): Pair<List<Chat>, List<Chat>> {
-  val all = chatModel.chats.value.filter { it.chatInfo is ChatInfo.Direct || it.chatInfo is ChatInfo.Group }
+  val all = chatModel.chats.value.filter { (it.chatInfo is ChatInfo.Direct || it.chatInfo is ChatInfo.Group) && !VibeChatSets.hidden(it) }
   fun pinnedFirst(l: List<Chat>) = l.filter { it.chatInfo.chatSettings?.favorite == true } + l.filter { it.chatInfo.chatSettings?.favorite != true }
   return pinnedFirst(all.filter { !isGroup(it) }) to pinnedFirst(all.filter { isGroup(it) })
 }
@@ -139,8 +141,9 @@ private fun VibeRailColumn(userPickerState: MutableStateFlow<AnimatedViewState>,
       user?.image, user?.displayName ?: "", 48.dp,
       Modifier.combinedClickable(
         interactionSource = remember { MutableInteractionSource() }, indication = null,
-        onClick = { VibeRail.selected.value = null },
-        onLongClick = { userPickerState.value = AnimatedViewState.VISIBLE },
+        onClick = { VibeRail.selected.value = null; VibeRail.folder.value = null },
+        // archived and locked chats, folders, switch profile
+        onLongClick = { VibeChatSets.showMore(userPickerState) },
       )
     )
     Box(Modifier.padding(vertical = 8.dp, horizontal = 20.dp).fillMaxWidth().height(1.dp).background(VibeColors.divider()))
@@ -157,6 +160,12 @@ private fun VibeRailColumn(userPickerState: MutableStateFlow<AnimatedViewState>,
           if (line) Box(Modifier.padding(vertical = 6.dp, horizontal = 24.dp).fillMaxWidth().height(1.dp).background(VibeColors.divider()))
           VibeRailItem(chat)
         }
+      }
+      // folders (SimpleX's chat lists), like Discord's servers
+      val tags = chatModel.userTags.value
+      if (tags.isNotEmpty()) {
+        item("folders-line") { Box(Modifier.padding(vertical = 6.dp, horizontal = 24.dp).fillMaxWidth().height(1.dp).background(VibeColors.divider())) }
+        itemsIndexed(tags, key = { _, t -> "tag" + t.chatTagId }) { _, t -> VibeFolderItem(t) }
       }
       item {
         Box(Modifier.padding(vertical = 8.dp).size(48.dp).clip(CircleShape).background(VibeColors.high()).clickable { showNewChatSheet() }, contentAlignment = Alignment.Center) {
@@ -221,17 +230,58 @@ private fun VibeRailItem(chat: Chat) {
   }
 }
 
-/** Blurple dot with a ring while someone is typing (live) there. */
+@Composable
+private fun VibeFolderItem(tag: ChatTag) {
+  val active = VibeRail.folder.value == tag.chatTagId && VibeRail.selected.value == null
+  val unread = chatModel.chats.value.count { tag.chatTagId in it.vibeTags() && !VibeChatSets.hidden(it) && (it.chatStats.unreadCount > 0 || it.chatStats.unreadChat) }
+  val radius by animateDpAsState(if (active) 12.dp else 15.dp, VibeSprings.pop(), label = "fradius")
+  val pill by animateDpAsState(if (active) 30.dp else if (unread > 0) 8.dp else 0.dp, VibeSprings.pop(), label = "fpill")
+  Box(Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
+    Box(
+      Modifier.align(Alignment.CenterStart).width(4.dp).height(pill)
+        .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp)).background(VibeColors.onSurface())
+    )
+    Box(
+      Modifier.size(46.dp).clip(RoundedCornerShape(radius))
+        .background(if (active) VibeColors.blurple else VibeColors.high())
+        .clickable {
+          VibeHaptics.selection()
+          VibeRail.selected.value = null
+          VibeRail.folder.value = if (VibeRail.folder.value == tag.chatTagId) null else tag.chatTagId
+        },
+      contentAlignment = Alignment.Center
+    ) {
+      val emoji = tag.chatTagEmoji
+      if (emoji != null) Text(emoji, fontSize = 22.sp)
+      else Text(tag.chatTagText.trim().take(1).uppercase(), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (active) Color.White else VibeColors.onSurface())
+    }
+  }
+}
+
+/** A little pen writing on the picture while someone is typing (live, or typing dots) there. */
 @Composable
 fun VibeTypingDot(chat: Chat, modifier: Modifier = Modifier) {
   val last = chat.chatItems.lastOrNull()
   if (last == null || !last.meta.isLive || last.chatDir.sent) return
-  val inf = rememberInfiniteTransition(label = "typingDot")
-  val s by inf.animateFloat(0.8f, 1.1f, infiniteRepeatable(tween(600), RepeatMode.Reverse), label = "s")
+  // a tiny pen writing, as in Vibe
+  val inf = rememberInfiniteTransition(label = "typingPen")
+  val t by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(900, easing = LinearEasing)), label = "t")
   Box(
-    modifier.size(16.dp).graphicsLayer { scaleX = s; scaleY = s }.clip(CircleShape).background(VibeColors.lowest()).padding(3.dp)
-      .clip(CircleShape).background(VibeColors.blurple)
-  )
+    modifier.size(20.dp).clip(CircleShape).background(VibeColors.lowest()).padding(2.dp)
+      .clip(CircleShape).background(VibeColors.blurple),
+    contentAlignment = Alignment.Center
+  ) {
+    val a = t * 2f * Math.PI.toFloat()
+    Icon(
+      VibeIcons.Edit, null,
+      Modifier.size(11.dp).graphicsLayer {
+        translationX = kotlin.math.sin(a) * 1.6.dp.toPx()
+        translationY = kotlin.math.abs(kotlin.math.cos(a)) * -1.2.dp.toPx()
+        rotationZ = kotlin.math.sin(a * 2) * 8f
+      },
+      tint = Color.White
+    )
+  }
 }
 
 /* ---------------------------------------------------------------- pane --- */
@@ -281,7 +331,13 @@ private fun SectionLabel(text: String, onAdd: (() -> Unit)? = null) {
 private fun VibeDmPane(stopped: Boolean) {
   var filter by remember { mutableStateOf("") }
   val q = filter.trim().lowercase()
-  val chats = chatModel.chats.value.filter { q.isEmpty() || it.chatInfo.displayName.lowercase().contains(q) }
+  val folderId = VibeRail.folder.value
+  val folder = folderId?.let { id -> chatModel.userTags.value.firstOrNull { it.chatTagId == id } }
+  if (folderId != null && folder == null) LaunchedEffect(folderId) { VibeRail.folder.value = null }
+  val chats = chatModel.chats.value.filter {
+    !VibeChatSets.hidden(it) && (folder == null || folder.chatTagId in it.vibeTags()) &&
+        (q.isEmpty() || it.chatInfo.displayName.lowercase().contains(q))
+  }
   val requests = chats.filter { it.chatInfo is ChatInfo.ContactRequest }
   val notes = chats.firstOrNull { it.chatInfo is ChatInfo.Local }
   val people = chats.filter { it.chatInfo is ChatInfo.Direct || it.chatInfo is ChatInfo.ContactConnection }
@@ -291,8 +347,16 @@ private fun VibeDmPane(stopped: Boolean) {
   val otherGroups = groups.filter { it.chatInfo.chatSettings?.favorite != true }
   Column(Modifier.fillMaxSize().statusBarsPadding()) {
     VibeSearchField(filter, { filter = it })
+    if (folder != null) {
+      Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text((folder.chatTagEmoji?.let { "$it  " } ?: "") + folder.chatTagText, Modifier.weight(1f), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Box(Modifier.size(36.dp).clip(CircleShape).clickable { VibeRail.folder.value = null }, contentAlignment = Alignment.Center) {
+          Icon(VibeIcons.Close, "All chats", Modifier.size(20.dp), tint = VibeColors.onVariant())
+        }
+      }
+    }
     LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 110.dp)) {
-      if (notes != null && q.isEmpty()) {
+      if (notes != null && q.isEmpty() && folder == null) {
         item("notes") { NavTile(VibeIcons.Star, "Private notes", notes) }
       }
       if (requests.isNotEmpty()) {
@@ -596,6 +660,8 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
   val running = chatModel.chatRunning.value
   // a quiet look for a new Vibe X now and then (at most every 6 hours)
   LaunchedEffect(Unit) {
+    VibeScheduled.start()
+    VibeCrash.checkOnStart()
     VibeUpdater.maybeCheck()
     // after the update check, so the two never stack
     kotlinx.coroutines.delay(4000)

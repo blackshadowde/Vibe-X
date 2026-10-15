@@ -102,6 +102,27 @@ private fun Sheet(chat0: Chat, onOpen: () -> Unit, close: () -> Unit) {
     }
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
       ListRow(VibeIcons.Chat, "Open chat") { close(); onOpen() }
+      if (canToggle) {
+        val archived = VibeChatSets.isArchived(chat.id)
+        ListRow(VibeIcons.Archive, if (archived) "Unarchive" else "Archive", subtitle = if (archived) null else "Hide it from your list") {
+          close()
+          VibeChatSets.setArchived(chat.id, !archived)
+          if (!archived && VibeRail.selected.value == chat.id) VibeRail.selected.value = null
+          VibeHaptics.light()
+          showToast(if (archived) "$name is back in your list" else "$name archived. Long-press your picture to find it.")
+        }
+        val locked = VibeChatSets.isLocked(chat.id)
+        ListRow(VibeIcons.Lock, if (locked) "Unlock chat" else "Lock chat", subtitle = if (locked) null else "Opens only with your fingerprint or PIN") {
+          close(); VibeChatSets.toggleLock(chat)
+        }
+        ListRow(VibeIcons.Folder, if (chat.vibeTags().isEmpty()) "Add to folder" else "Change folder") {
+          close()
+          chat.simplex.common.views.helpers.ModalManager.start.showModalCloseable { c ->
+            if (chatModel.userTags.value.isEmpty()) TagListEditor(rhId = chat.remoteHostId, chat = chat, close = c)
+            else TagListView(rhId = chat.remoteHostId, chat = chat, close = c, reorderMode = false)
+          }
+        }
+      }
       if (info is ChatInfo.Direct || info is ChatInfo.Group || info is ChatInfo.Local) {
         ListRow(painterIcon(MR.images.ic_settings_backup_restore), "Clear chat history", subtitle = "Messages go, the chat stays") { close(); clearChatDialog(chat) }
       }

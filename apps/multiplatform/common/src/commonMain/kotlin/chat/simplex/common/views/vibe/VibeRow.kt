@@ -172,7 +172,7 @@ fun vibeEndsBlock(item: ChatItem, newer: ChatItem?): Boolean =
   newer == null || !newer.isVibeRow() || newer.vibeHidden() || newer.vibeTypingDots() || newer.quotedItem != null || vibeStartsBlock(newer, item)
 
 /** Items Vibe doesn't show (the intro at the top says it once). */
-fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLiveDummy)) || (meta.isLive && content.text.isBlank())) true else when (content) {
+fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLiveDummy)) || (meta.isLive && (content.text.isBlank() || meta.itemDeleted != null))) true else when (content) {
   is CIContent.SndDirectE2EEInfo, is CIContent.RcvDirectE2EEInfo,
   is CIContent.SndGroupE2EEInfo, is CIContent.RcvGroupE2EEInfo,
   is CIContent.RcvChatFeature, is CIContent.SndChatFeature,

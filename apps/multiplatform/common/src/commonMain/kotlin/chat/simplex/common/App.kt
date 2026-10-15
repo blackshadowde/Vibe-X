@@ -207,7 +207,10 @@ fun MainScreen() {
         ModalManager.fullscreen.showInView()
       }
       SwitchingUsersView()
-      if (vibeStyle) VibeSheetHost()
+      if (vibeStyle) {
+        VibeActivityHost()
+        VibeSheetHost()
+      }
     }
 
     if (unauthorized.value && !(chatModel.activeCallViewIsVisible.value && chatModel.showCallView.value)) {

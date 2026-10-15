@@ -61,6 +61,7 @@ fun SendMsgView(
   cancelLiveMessage: (() -> Unit)? = null,
   autoLive: Boolean = false,
   sendWithEffect: ((VibeEffect) -> Unit)? = null,
+  sendLater: ((Long) -> Unit)? = null,
   vibeLeading: (@Composable () -> Unit)? = null,
   vibeTop: (@Composable () -> Unit)? = null,
   editPrevMessage: () -> Unit,
@@ -340,7 +341,7 @@ fun SendMsgView(
             if (menuItems.isNotEmpty()) {
               SendMsgButton(icon, sendButtonSize, sendButtonAlpha, sendButtonColor, !sendMsgButtonDisabled, sendToConnect, sendMessage, vibe = vibeLeading != null) {
                 if (vibeLeading != null) {
-                  VibeSendOptions.show(composeState.value.message.text, sendWithEffect, if (timedMessageAllowed && !composeState.value.editing) ({ ttl -> sendMessage(ttl) }) else null)
+                  VibeSendOptions.show(composeState.value.message.text, sendWithEffect, if (timedMessageAllowed && !composeState.value.editing) ({ ttl -> sendMessage(ttl) }) else null, if (!composeState.value.editing) sendLater else null)
                 } else showDropdown.value = true
               }
               DefaultDropdownMenu(showDropdown) {

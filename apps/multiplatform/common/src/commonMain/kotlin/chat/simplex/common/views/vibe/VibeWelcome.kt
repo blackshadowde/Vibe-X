@@ -107,6 +107,8 @@ fun VibeWelcome(chatModel: ChatModel, onDone: (() -> Unit)? = null) {
         Spacer(Modifier.width(8.dp))
         Text("Vibe X", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = VibeColors.onSurface())
         Spacer(Modifier.weight(1f))
+        // already have Vibe X: log in with your backup
+        if (onDone == null && chatModel.currentUser.value == null) VibeAccount.LogInButton()
         if (!last) {
           Text("Skip", Modifier.clip(RoundedCornerShape(12.dp)).clickable { finish() }.padding(horizontal = 12.dp, vertical = 8.dp), color = lavender, fontWeight = FontWeight.SemiBold)
         }

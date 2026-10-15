@@ -200,6 +200,12 @@ class AppPreferences {
   val vibeSupportFirstSeen = mkLongPreference("VibeSupportFirstSeen", 0L)
   val vibeSupportLastAsk = mkLongPreference("VibeSupportLastAsk", 0L)
   val vibeSupportNever = mkBoolPreference("VibeSupportNever", false)
+  val vibeLockedChats = mkStrPreference("VibeLockedChats", null)
+  val vibeArchivedChats = mkStrPreference("VibeArchivedChats", null)
+  val vibeScheduled = mkStrPreference("VibeScheduled", null)
+  val vibeLowData = mkBoolPreference("VibeLowData", false)
+  val vibeSaveMedia = mkBoolPreference("VibeSaveMedia", false)
+  val vibeMissedCalls = mkStrPreference("VibeMissedCalls", null)
   val signMessageAlertShown = mkBoolPreference(SHARED_PREFS_SIGN_MESSAGE_ALERT_SHOWN, false)
   val showHiddenProfilesNotice = mkBoolPreference(SHARED_PREFS_SHOW_HIDDEN_PROFILES_NOTICE, true)
   val oneHandUICardShown = mkBoolPreference(SHARED_PREFS_ONE_HAND_UI_CARD_SHOWN, false)
@@ -2935,6 +2941,8 @@ object ChatController {
           val mc = cItem.content.msgContent
           if (file != null &&
             appPrefs.privacyAcceptImages.get() &&
+            // Vibe X low data mode: photos and videos load when you tap them
+            !(chat.simplex.common.views.vibe.vibeStyle && appPrefs.vibeLowData.get() && mc !is MsgContent.MCVoice) &&
             ((mc is MsgContent.MCImage && file.fileSize <= MAX_IMAGE_SIZE_AUTO_RCV)
                 || (mc is MsgContent.MCVideo && file.fileSize <= MAX_VIDEO_SIZE_AUTO_RCV)
                 || (mc is MsgContent.MCVoice && file.fileSize <= MAX_VOICE_SIZE_AUTO_RCV && file.fileStatus !is CIFileStatus.RcvAccepted))
@@ -2942,6 +2950,8 @@ object ChatController {
             receiveFile(rhId, r.user, file.fileId, auto = true)
           }
           ntfManager.notifyMessageReceived(rhId, r.user, cInfo, cItem)
+          // Vibe X: the pill at the top when you're in another chat
+          if (active(r.user)) runCatching { chat.simplex.common.views.vibe.VibeActivity.onNew(cInfo, cItem) }
         }
       }
       is CR.ChatItemsStatusesUpdated ->
@@ -3226,8 +3236,11 @@ object ChatController {
         }
       is CR.RcvFileStart ->
         chatItemSimpleUpdate(rhId, r.user, r.chatItem)
-      is CR.RcvFileComplete ->
+      is CR.RcvFileComplete -> {
         chatItemSimpleUpdate(rhId, r.user, r.chatItem)
+        // Vibe X: "Save received media to gallery"
+        if (chat.simplex.common.views.vibe.vibeStyle && appPrefs.vibeSaveMedia.get()) runCatching { chat.simplex.common.views.vibe.vibeSaveToGallery(r.chatItem.chatItem) }
+      }
       is CR.RcvFileSndCancelled -> {
         chatItemSimpleUpdate(rhId, r.user, r.chatItem)
         cleanupFile(r.chatItem)

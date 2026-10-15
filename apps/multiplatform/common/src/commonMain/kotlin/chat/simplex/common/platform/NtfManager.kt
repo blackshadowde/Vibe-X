@@ -46,6 +46,10 @@ abstract class NtfManager {
               chatModel.chatId.value != cInfo.id ||
               chatModel.remoteHostId() != rhId)
     ) {
+      // Vibe X: a locked chat's notification shows neither who nor what
+      if (chat.simplex.common.views.vibe.vibeStyle && chat.simplex.common.views.vibe.VibeChatSets.isLocked(cInfo.id)) {
+        displayNotification(user = user, chatId = cInfo.id, displayName = "Vibe X", msgText = "New message in a locked chat")
+      } else
       displayNotification(user = user, chatId = cInfo.id, displayName = cInfo.displayName, msgText = hideSecrets(cItem, cInfo.isChannel))
     }
   }

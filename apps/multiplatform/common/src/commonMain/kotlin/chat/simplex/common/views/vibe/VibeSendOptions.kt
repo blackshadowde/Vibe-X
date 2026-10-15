@@ -19,7 +19,7 @@ import dev.icerock.moko.resources.compose.painterResource
 
 /** Long-press send: send with an effect, or as a disappearing message. */
 object VibeSendOptions {
-  fun show(text: String, sendWithEffect: ((VibeEffect) -> Unit)?, sendTimed: ((Int) -> Unit)?) {
+  fun show(text: String, sendWithEffect: ((VibeEffect) -> Unit)?, sendTimed: ((Int) -> Unit)?, sendLater: ((Long) -> Unit)? = null) {
     if (text.isBlank()) return
     VibeSheets.show(background = { vibePage() }) { close ->
       Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
@@ -47,6 +47,19 @@ object VibeSendOptions {
                   }
                 }
                 repeat(4 - effects.size) { Spacer(Modifier.weight(1f)) }
+              }
+            }
+          }
+        }
+        if (sendLater != null) {
+          Text("Send later", Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 10.dp), fontSize = 15.sp, color = VibeColors.onVariant())
+          Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
+            for ((label, at) in VibeScheduled.presets()) {
+              Row(Modifier.fillMaxWidth().clickable { close(); sendLater(at) }.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(VibeIcons.Schedule, null, Modifier.size(22.dp), tint = VibeColors.onSurface())
+                Spacer(Modifier.width(16.dp))
+                Text(label, Modifier.weight(1f), fontSize = 16.sp, color = VibeColors.onSurface())
+                Text(VibeScheduled.whenText(at).substringAfter(" at ", ""), fontSize = 13.sp, color = VibeColors.onVariant())
               }
             }
           }

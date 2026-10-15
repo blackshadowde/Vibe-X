@@ -40,3 +40,5 @@ actual fun vibeInstallApk(file: File): Boolean = runCatching {
       .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
   )
 }.onFailure { Log.e(TAG, "Vibe updater: ${it.message}") }.isSuccess
+
+actual fun vibeRestartApp() = chat.simplex.common.views.usersettings.restartApp()

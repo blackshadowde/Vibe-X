@@ -61,7 +61,7 @@ private object NotoCache {
 @Composable
 actual fun VibeAnimatedEmoji(emoji: String, size: Dp, modifier: Modifier) {
   var drawable by remember(emoji) { mutableStateOf<Drawable?>(null) }
-  val proxied = appPreferences.networkUseSocksProxy.get()
+  val proxied = appPreferences.networkUseSocksProxy.get() || appPreferences.vibeLowData.state.value
   LaunchedEffect(emoji, proxied) {
     if (Build.VERSION.SDK_INT < 28 || proxied) return@LaunchedEffect
     drawable = withContext(Dispatchers.IO) {

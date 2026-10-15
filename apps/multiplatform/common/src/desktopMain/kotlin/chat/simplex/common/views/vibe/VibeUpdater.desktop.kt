@@ -14,3 +14,7 @@ actual fun vibeCanInstallApk(): Boolean = false
 actual fun vibeAllowInstallApk() {}
 
 actual fun vibeInstallApk(file: File): Boolean = false
+
+actual fun vibeRestartApp() {
+  chat.simplex.common.views.helpers.AlertManager.shared.showAlertMsg("Restart Vibe X", "Close and open the app again to continue.")
+}
