@@ -23,6 +23,7 @@ import chat.simplex.common.platform.*
 import chat.simplex.common.ui.theme.*
 import chat.simplex.common.views.chat.*
 import chat.simplex.common.views.helpers.*
+import chat.simplex.common.views.vibe.*
 import chat.simplex.common.views.newchat.planAndConnect
 import chat.simplex.res.MR
 import kotlinx.coroutines.Dispatchers
@@ -213,11 +214,12 @@ fun FramedItemView(
 
   val sentColor = MaterialTheme.appColors.sentMessage
   val receivedColor = MaterialTheme.appColors.receivedMessage
+  val vibeRow = LocalVibeRows.current
   Box(Modifier
     .clipChatItem(ci, tailVisible, revealed = true)
     .background(
       when {
-        transparentBackground -> Color.Transparent
+        transparentBackground || vibeRow -> Color.Transparent
         sent -> sentColor
         else -> receivedColor
       }
@@ -267,7 +269,7 @@ fun FramedItemView(
                 }
               }
             } else if (ci.meta.isLive) {
-              FramedItemHeader(stringResource(MR.strings.live), false)
+              if (vibeRow) VibeLivePill() else FramedItemHeader(stringResource(MR.strings.live), false)
             }
           }
           if (ci.quotedItem != null) {
@@ -298,7 +300,10 @@ fun FramedItemView(
               FramedItemHeader(ci.meta.itemForwarded.text(chatInfo.chatType), true, painterResource(MR.images.ic_forward), pad = true)
             }
           }
-          if (ci.file == null && ci.formattedText == null && !ci.meta.isLive && isShortEmoji(ci.content.text)) {
+          if (ci.file == null && ci.formattedText == null && !ci.meta.isLive && isShortEmoji(VibeEffect.strip(ci.content.text))) {
+            if (vibeRow) {
+              Box(Modifier.padding(vertical = 4.dp)) { VibeBigEmoji(ci) }
+            } else
             Box(Modifier.padding(vertical = 6.dp, horizontal = 12.dp)) {
               Column(
                 Modifier
@@ -383,8 +388,8 @@ fun FramedItemView(
       Box(
         Modifier
           .padding(
-            bottom = 6.dp,
-            end = 12.dp + if (tailRendered && sent) msgTailWidthDp else 0.dp,
+            bottom = if (vibeRow) 2.dp else 6.dp,
+            end = if (vibeRow) 0.dp else 12.dp + if (tailRendered && sent) msgTailWidthDp else 0.dp,
           )
       ) {
         CIMetaView(ci, chatTTL, metaColor, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
@@ -411,7 +416,12 @@ fun CIMarkdownText(
   val text = if (ci.meta.isLive) ci.content.msgContent?.text ?: ci.text else ci.text
   val selection = setupItemSelection(LocalSelectionManager.current, LocalItemContext.current.selectionIndex, ci.meta.isLive == true)
 
-  Box(Modifier.padding(vertical = 7.dp, horizontal = 12.dp).then(selection.positionModifier)) {
+  val vibeRow = LocalVibeRows.current
+  if (vibeRow && ci.meta.isLive) {
+    Box(Modifier.padding(vertical = 2.dp)) { VibeLiveText(text) }
+    return
+  }
+  Box(Modifier.padding(vertical = if (vibeRow) 2.dp else 7.dp, horizontal = if (vibeRow) 0.dp else 12.dp).then(selection.positionModifier)) {
     MarkdownText(
       text, if (text.isEmpty()) emptyList() else ci.formattedText, toggleSecrets = true,
       sendCommandMsg = if (chatInfo.useCommands && chat.chatInfo.sndReady) { { msg -> sendCommandMsg(chatsCtx, chat, msg) } } else null,

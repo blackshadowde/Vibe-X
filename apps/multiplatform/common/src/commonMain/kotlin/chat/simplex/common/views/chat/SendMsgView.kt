@@ -22,6 +22,7 @@ import chat.simplex.common.model.*
 import chat.simplex.common.ui.theme.*
 import chat.simplex.common.views.chat.item.ItemAction
 import chat.simplex.common.views.helpers.*
+import chat.simplex.common.views.vibe.*
 import chat.simplex.common.model.ChatItem
 import chat.simplex.common.platform.*
 import chat.simplex.res.MR
@@ -58,6 +59,8 @@ fun SendMsgView(
   sendLiveMessage: (suspend () -> Unit)? = null,
   updateLiveMessage: (suspend () -> Unit)? = null,
   cancelLiveMessage: (() -> Unit)? = null,
+  autoLive: Boolean = false,
+  sendWithEffect: ((VibeEffect) -> Unit)? = null,
   editPrevMessage: () -> Unit,
   onFilesPasted: (List<URI>) -> Unit,
   onMessageChange: (ComposeMessage) -> Unit,
@@ -124,6 +127,20 @@ fun SendMsgView(
       val sendButtonSize = remember { Animatable(36f) }
       val sendButtonAlpha = remember { Animatable(1f) }
       val scope = rememberCoroutineScope()
+      // Vibe X live typing: start a live message by itself shortly after you start typing,
+      // so the other side sees your words appear instead of "typing…" dots.
+      val hasText = cs.message.text.isNotBlank()
+      LaunchedEffect(autoLive, hasText) {
+        if (!autoLive || !hasText || sendLiveMessage == null || updateLiveMessage == null) return@LaunchedEffect
+        delay(700)
+        val c = composeState.value
+        if (c.message.text.isNotBlank() && c.liveMessage == null && !c.editing && !c.forwarding && !c.inProgress &&
+          (c.contextItem is ComposeContextItem.NoContextItem || c.contextItem is ComposeContextItem.QuotedItem) &&
+          c.preview is ComposePreview.NoPreview && sendMsgEnabled && !nextConnect && sendToConnect == null
+        ) {
+          startLiveMessage(scope, sendLiveMessage, updateLiveMessage, sendButtonSize, sendButtonAlpha, composeState, liveMessageAlertShown)
+        }
+      }
       LaunchedEffect(Unit) {
         // Making LiveMessage alive when screen orientation was changed
         if (cs.liveMessage != null && sendLiveMessage != null && updateLiveMessage != null) {
@@ -174,7 +191,7 @@ fun SendMsgView(
         }
         else -> {
           val cs = composeState.value
-          val icon = if (cs.editing || cs.liveMessage != null) painterResource(MR.images.ic_check_filled) else painterResource(MR.images.ic_arrow_upward)
+          val icon = if (cs.editing || (cs.liveMessage != null && !autoLive)) painterResource(MR.images.ic_check_filled) else painterResource(MR.images.ic_arrow_upward)
           val showDropdown = rememberSaveable { mutableStateOf(false) }
 
           @Composable
@@ -182,7 +199,29 @@ fun SendMsgView(
             val menuItems = mutableListOf<@Composable () -> Unit>()
 
             if (cs.liveMessage == null && !cs.editing && !nextConnect || sendMsgEnabled) {
+              if (sendWithEffect != null && !cs.editing && cs.preview is ComposePreview.NoPreview && sendMsgEnabled) {
+                VibeEffect.entries.forEach { effect ->
+                  menuItems.add {
+                    ItemAction("${effect.emoji}   Send with ${effect.label.lowercase()}") {
+                      showDropdown.value = false
+                      sendWithEffect(effect)
+                    }
+                  }
+                }
+                menuItems.add {
+                  val pref = chatModel.controller.appPrefs.vibeLiveTyping
+                  ItemAction(
+                    if (pref.state.value) "Live typing: on" else "Live typing: off",
+                    BoltFilled,
+                    onClick = {
+                      pref.set(!pref.state.value)
+                      showDropdown.value = false
+                    }
+                  )
+                }
+              }
               if (
+                !(autoLive && cs.liveMessage != null) &&
                 cs.preview !is ComposePreview.VoicePreview &&
                 cs.contextItem is ComposeContextItem.NoContextItem &&
                 sendLiveMessage != null && updateLiveMessage != null
@@ -543,10 +582,12 @@ private fun startLiveMessage(
       sendButtonAlpha.snapTo(1f)
     }
     scope.launch {
-      delay(3000)
+      // Vibe X sends the live text more often, so typing looks live on the other side
+      val every = if (vibeStyle) 1100L else 3000L
+      delay(every)
       while (composeState.value.liveMessage != null) {
         update()
-        delay(3000)
+        delay(every)
       }
     }
   }

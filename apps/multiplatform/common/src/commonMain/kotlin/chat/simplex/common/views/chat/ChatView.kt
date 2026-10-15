@@ -39,6 +39,7 @@ import chat.simplex.common.views.chat.group.*
 import chat.simplex.common.views.chat.item.*
 import chat.simplex.common.views.chatlist.*
 import chat.simplex.common.views.helpers.*
+import chat.simplex.common.views.vibe.*
 import chat.simplex.common.model.GroupInfo
 import chat.simplex.common.platform.*
 import chat.simplex.common.platform.AudioPlayer
@@ -1910,6 +1911,8 @@ fun BoxScope.ChatItemsList(
     itemSeparation: ItemSeparation,
     previousItemSeparationLargeGap: Boolean,
     revealed: State<Boolean>,
+    vibeHeader: Boolean = true,
+    vibeNew: Boolean = false,
     reveal: (Boolean) -> Unit
   ) {
     val itemScope = rememberCoroutineScope()
@@ -1999,6 +2002,40 @@ fun BoxScope.ChatItemsList(
           val tailRendered = style is ShapeStyle.Bubble && style.tailVisible
 
           return originalPadding + (if (tailRendered) 0.dp else if (start) msgTailWidthDp * 2 else msgTailWidthDp)
+        }
+
+        if (vibeStyle && cItem.isVibeRow()) {
+          val selectionVisible = selectedChatItems.value != null && cItem.canBeDeletedForSelf
+          Box(Modifier.vibeSweepIn(cItem)) {
+            CompositionLocalProvider(LocalVibeRows provides true) {
+              VibeMessageRow(
+                chatInfo, cItem, vibeHeader,
+                onAvatarClick = {
+                  val d = cItem.chatDir
+                  if (d is CIDirection.GroupRcv && chatInfo is ChatInfo.Group) showMemberInfo(chatInfo.groupInfo, d.groupMember)
+                  else if (!d.sent) showChatInfo()
+                },
+                modifier = if (selectionVisible) Modifier else swipeableModifier,
+              ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  AnimatedVisibility(selectionVisible, enter = fadeIn(), exit = fadeOut()) {
+                    SelectedListItem(Modifier.padding(end = 6.dp), cItem.id, selectedChatItems)
+                  }
+                  Box(Modifier.weight(1f)) {
+                    ChatItemViewShortHand(cItem, itemSeparation.copy(timestamp = false), range, swipeOffset = dismissState.offset.value)
+                  }
+                }
+              }
+            }
+            if (selectionVisible) {
+              Box(Modifier.matchParentSize().clickable {
+                val checked = selectedChatItems.value?.contains(cItem.id) == true
+                selectUnselectChatItem(select = !checked, cItem, revealed, selectedChatItems, reversedChatItems)
+              })
+            }
+          }
+          VibeEffectTrigger(cItem)
+          return
         }
 
         Box {
@@ -2227,6 +2264,10 @@ fun BoxScope.ChatItemsList(
         DateSeparator(itemSeparation.date)
       }
       ChatItemView(cItem, range, itemSeparation, previousItemSeparationLargeGap)
+      if (vibeNew) {
+        // reverse layout: emitted after the item means drawn above it
+        VibeNewDivider()
+      }
     }
   }
 
@@ -2364,6 +2405,7 @@ fun BoxScope.ChatItemsList(
 
   val manager = LocalSelectionManager.current
   val modifier = if (appPlatform.isDesktop && manager != null) SelectionHandler(manager, listState, mergedItems, revealedItems, linkMode) else Modifier
+  val vibeNewMarker = remember(chatInfo.id) { mutableStateOf<Long?>(null) }
 
   LazyColumnWithScrollBar(
     modifier.align(Alignment.BottomCenter),
@@ -2408,6 +2450,11 @@ fun BoxScope.ChatItemsList(
           null
         }
         val showAvatar = shouldShowAvatar(item, merged.oldest().nextItem)
+        val olderItem = merged.oldest().nextItem
+        val vibeHeader = vibeStyle && vibeStartsBlock(item, olderItem)
+        if (vibeStyle && vibeNewMarker.value == null && item.isRcvNew && (olderItem == null || !olderItem.isRcvNew) && !item.vibeJustArrived(15)) {
+          SideEffect { if (vibeNewMarker.value == null) vibeNewMarker.value = item.id }
+        }
         val isRevealed = remember { derivedStateOf { revealedItems.value.contains(item.id) } }
         val itemSeparation: ItemSeparation
         val prevItemSeparationLargeGap: Boolean
@@ -2421,7 +2468,7 @@ fun BoxScope.ChatItemsList(
           prevItemSeparationLargeGap = false
         }
         CompositionLocalProvider(LocalItemContext provides ItemContext(selectionIndex = index)) {
-          ChatViewListItem(index == 0, rememberUpdatedState(range), showAvatar, item, itemSeparation, prevItemSeparationLargeGap, isRevealed) {
+          ChatViewListItem(index == 0, rememberUpdatedState(range), showAvatar, item, itemSeparation, prevItemSeparationLargeGap, isRevealed, vibeHeader, vibeStyle && vibeNewMarker.value == item.id) {
             if (merged is MergedItem.Grouped) merged.reveal(it, revealedItems)
           }
         }
@@ -2438,6 +2485,12 @@ fun BoxScope.ChatItemsList(
           MarkItemsReadAfterDelay(keyForItem(item), itemIds, finishedInitialComposition, chatInfo.id, listState, markItemsRead)
         }
       }
+    }
+  }
+  if (vibeStyle) {
+    VibeOverlay()
+    if (chatsCtx.secondaryContextFilter == null) {
+      VibePeek(chatInfo.id, Modifier.align(Alignment.BottomStart).padding(bottom = composeViewHeight.value + 10.dp))
     }
   }
   FloatingButtons(

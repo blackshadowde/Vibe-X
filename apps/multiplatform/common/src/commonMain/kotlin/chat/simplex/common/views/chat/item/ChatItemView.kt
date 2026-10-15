@@ -32,6 +32,7 @@ import chat.simplex.common.model.ChatModel.currentUser
 import chat.simplex.common.platform.*
 import chat.simplex.common.ui.theme.*
 import chat.simplex.common.views.chat.*
+import chat.simplex.common.views.vibe.*
 import chat.simplex.common.views.chatlist.openChat
 import chat.simplex.common.views.helpers.*
 import chat.simplex.res.MR
@@ -117,7 +118,8 @@ fun ChatItemView(
   val cInfo = chat.chatInfo
   val uriHandler = LocalUriHandler.current
   val sent = cItem.chatDir.sent
-  val alignment = if (sent) Alignment.CenterEnd else Alignment.CenterStart
+  val vibeRow = LocalVibeRows.current
+  val alignment = if (sent && !vibeRow) Alignment.CenterEnd else Alignment.CenterStart
   val showMenu = remember { mutableStateOf(false) }
   val fullDeleteAllowed = remember(cInfo) { cInfo.featureEnabled(ChatFeature.FullDelete) }
   val onLinkLongClick = { _: String -> showMenu.value = true }
@@ -139,7 +141,7 @@ fun ChatItemView(
 
     @Composable
     fun ChatItemReactions() {
-      Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.chatItemOffset(cItem, itemSeparation.largeGap, inverted = true, revealed = true)) {
+      Row(verticalAlignment = Alignment.CenterVertically, modifier = if (vibeRow) Modifier.padding(top = 2.dp) else Modifier.chatItemOffset(cItem, itemSeparation.largeGap, inverted = true, revealed = true)) {
         cItem.reactions.forEach { r ->
           val showReactionMenu = remember { mutableStateOf(false) }
           val reactionMenuItems = remember { mutableStateOf(emptyList<ChatItemReactionMenuItem>()) }
@@ -153,7 +155,7 @@ fun ChatItemView(
             }
           }
 
-          var modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp).clip(RoundedCornerShape(8.dp))
+          var modifier = if (vibeRow) Modifier.vibeBurstOnIncrease(r.reaction.text, r.totalReacted).vibeReactionChip(r.userReacted) else Modifier.padding(horizontal = 5.dp, vertical = 2.dp).clip(RoundedCornerShape(8.dp))
           if (cInfo.featureEnabled(ChatFeature.Reactions)) {
             fun showReactionsMenu() {
               when (cInfo) {
@@ -206,8 +208,8 @@ fun ChatItemView(
               )
               .onRightClick { showReactionsMenu() }
           }
-          Row(modifier.padding(2.dp), verticalAlignment = Alignment.CenterVertically) {
-            ReactionIcon(r.reaction.text, fontSize = 12.sp)
+          Row(modifier.padding(if (vibeRow) PaddingValues(horizontal = 8.dp, vertical = 3.dp) else PaddingValues(2.dp)), verticalAlignment = Alignment.CenterVertically) {
+            ReactionIcon(r.reaction.text, fontSize = if (vibeRow) 16.sp else 12.sp)
             DefaultDropdownMenu(showMenu = showReactionMenu) {
               reactionMenuItems.value.forEach { m ->
                 ItemAction(
@@ -225,7 +227,10 @@ fun ChatItemView(
                 )
               }
             }
-            if (r.totalReacted > 1) {
+            if (vibeRow) {
+              Spacer(Modifier.width(5.dp))
+              VibeReactionCount(r.totalReacted, r.userReacted)
+            } else if (r.totalReacted > 1) {
               Spacer(Modifier.width(4.dp))
               Text(
                 "${r.totalReacted}",
@@ -301,7 +306,7 @@ fun ChatItemView(
       }
     }
 
-    Column(horizontalAlignment = if (cItem.chatDir.sent) Alignment.End else Alignment.Start) {
+    Column(horizontalAlignment = if (cItem.chatDir.sent && !vibeRow) Alignment.End else Alignment.Start) {
       val canReply = (cItem.content is CIContent.SndMsgContent || cItem.content is CIContent.RcvMsgContent) &&
           cInfo !is ChatInfo.Local && !cItem.isReport && !cItem.meta.isLive && cItem.meta.itemDeleted == null
       Box {
@@ -357,16 +362,18 @@ fun ChatItemView(
                 }
               }
               if (rs.isNotEmpty()) {
-                Row(modifier = Modifier.padding(horizontal = DEFAULT_PADDING).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
-                  rs.forEach() { r ->
+                Row(modifier = Modifier.padding(horizontal = if (vibeRow) DEFAULT_PADDING_HALF else DEFAULT_PADDING).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
+                  rs.forEachIndexed() { i, r ->
+                    val at = remember { mutableStateOf(Offset.Zero) }
                     Box(
-                      Modifier.size(36.dp).clip(CircleShape).clickable {
+                      (if (vibeRow) Modifier.vibePopIn(i).vibeTrackCenter(at).size(44.dp) else Modifier.size(36.dp)).clip(CircleShape).clickable {
+                        if (vibeRow) VibeBurst.fire(r.text, at.value)
                         setReaction(cInfo, cItem, true, r)
                         showMenu.value = false
                       },
                       contentAlignment = Alignment.Center
                     ) {
-                      ReactionIcon(r.text, 12.sp)
+                      ReactionIcon(r.text, if (vibeRow) 24.sp else 12.sp)
                     }
                   }
                 }
@@ -572,7 +579,7 @@ fun ChatItemView(
             fun ContentItem() {
               val mc = cItem.content.msgContent
               if (cItem.quotedItem == null && cItem.meta.itemForwarded == null && cItem.meta.itemDeleted == null && !cItem.meta.isLive) {
-                if (mc is MsgContent.MCText && isShortEmoji(cItem.content.text)) {
+                if (mc is MsgContent.MCText && isShortEmoji(VibeEffect.strip(cItem.content.text))) {
                   EmojiItemView(cItem, cInfo.timedMessagesTTL, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
                 } else if (mc is MsgContent.MCVoice && cItem.content.text.isEmpty()) {
                   CIVoiceView(mc.duration, cItem.file, cItem.meta.itemEdited, cItem.chatDir.sent, hasText = false, cItem, cInfo.timedMessagesTTL, showViaProxy = showViaProxy, showTimestamp = showTimestamp, longClick = { onLinkLongClick("") }, receiveFile = receiveFile)
@@ -1205,6 +1212,7 @@ fun ItemAction(text: String, color: Color = Color.Unspecified, onClick: () -> Un
 
 @Composable
 fun Modifier.chatItemOffset(cItem: ChatItem, tailVisible: Boolean, inverted: Boolean = false, revealed: Boolean): Modifier {
+  if (LocalVibeRows.current) return this
   val chatItemTail = remember { appPreferences.chatItemTail.state }
   val style = shapeStyle(cItem, chatItemTail.value, tailVisible, revealed)
 
@@ -1221,6 +1229,7 @@ fun Modifier.chatItemOffset(cItem: ChatItem, tailVisible: Boolean, inverted: Boo
 
 @Composable
 fun Modifier.clipChatItem(chatItem: ChatItem? = null, tailVisible: Boolean = false, revealed: Boolean = false): Modifier {
+  if (LocalVibeRows.current) return this.clip(RoundedCornerShape(10.dp))
   val chatItemRoundness = remember { appPreferences.chatItemRoundness.state }
   val chatItemTail = remember { appPreferences.chatItemTail.state }
   val style = shapeStyle(chatItem, chatItemTail.value, tailVisible, revealed)

@@ -40,7 +40,8 @@ fun DefaultAppBar(
   } else if (!onTop) Modifier.imePadding()
   else Modifier
 
-  val themeBackgroundMix = MaterialTheme.colors.background.mixWith(MaterialTheme.colors.onBackground, 0.97f)
+  // Vibe X: bars are the same colour as the screen under them
+  val themeBackgroundMix = if (chat.simplex.common.views.vibe.vibeStyle) MaterialTheme.colors.background else MaterialTheme.colors.background.mixWith(MaterialTheme.colors.onBackground, 0.97f)
   val prefAlpha = remember { appPrefs.inAppBarsAlpha.state }
   val handler = LocalAppBarHandler.current
   val connection = LocalAppBarHandler.current?.connection
@@ -105,7 +106,7 @@ fun DefaultAppBar(
         centered = !showSearch && (title != null || !onTop),
         onTop = onTop,
       )
-      AppBarDivider(onTop, title != null || fixedTitleText != null, connection)
+      if (!chat.simplex.common.views.vibe.vibeStyle) AppBarDivider(onTop, title != null || fixedTitleText != null, connection)
     }
   }
 }

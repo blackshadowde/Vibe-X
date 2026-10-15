@@ -1,0 +1,57 @@
+package chat.simplex.common.views.vibe
+
+import androidx.compose.animation.core.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import chat.simplex.common.model.ChatItem
+import chat.simplex.common.platform.appPlatform
+import kotlinx.datetime.Clock
+
+/** Vibe X look on phones; the desktop app keeps SimpleX's own look. */
+val vibeStyle: Boolean get() = appPlatform.isAndroid
+
+/** True inside a Vibe message row: no bubble, left aligned, no tail. */
+val LocalVibeRows = staticCompositionLocalOf { false }
+
+/** Items that already played their arrival animation (so scrolling back doesn't replay it). */
+internal object VibeSeen {
+  private val ids = HashSet<Long>()
+  fun firstTime(id: Long): Boolean = synchronized(ids) { ids.add(id) }
+}
+
+/** Arrived in the last few seconds, worth an entrance. */
+fun ChatItem.vibeJustArrived(seconds: Int = 6): Boolean =
+  id >= 0 && (Clock.System.now() - meta.createdAt).inWholeSeconds.let { it >= -5 && it <= seconds }
+
+/**
+ * Google Messages style entrance: the new message sweeps up from the input
+ * bar with a little spring, leaning in from its sender's side.
+ */
+fun Modifier.vibeSweepIn(item: ChatItem): Modifier = composed {
+  val animate = remember(item.id) { item.vibeJustArrived() && VibeSeen.firstTime(item.id) }
+  if (!animate) return@composed this
+  val p = remember(item.id) { Animatable(0f) }
+  LaunchedEffect(item.id) {
+    p.animateTo(1f, spring(dampingRatio = 0.68f, stiffness = 260f))
+  }
+  val density = LocalDensity.current
+  val rise = with(density) { 64.dp.toPx() }
+  val lean = with(density) { 28.dp.toPx() }
+  val sent = item.chatDir.sent
+  this.graphicsLayer {
+    val v = p.value
+    val inv = 1f - v
+    alpha = v.coerceIn(0f, 1f)
+    translationY = rise * inv
+    translationX = (if (sent) lean else -lean) * inv
+    scaleX = 0.86f + 0.14f * v
+    scaleY = 0.86f + 0.14f * v
+    rotationZ = (if (sent) 2.5f else -2.5f) * inv
+    transformOrigin = TransformOrigin(if (sent) 1f else 0f, 1f)
+  }
+}

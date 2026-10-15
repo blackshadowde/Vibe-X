@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.Saver
@@ -37,6 +38,7 @@ import chat.simplex.common.views.chat.group.hostFromRelayLink
 import chat.simplex.common.views.chat.group.relayConnStatus
 import chat.simplex.common.views.chat.item.*
 import chat.simplex.common.views.helpers.*
+import chat.simplex.common.views.vibe.*
 import chat.simplex.common.views.newchat.RelayProgressIndicator
 import chat.simplex.common.views.newchat.RelayStatusIndicator
 import chat.simplex.common.views.newchat.relayDisplayName
@@ -1489,6 +1491,16 @@ fun ComposeView(
         resetLinkPreview()
       },
       sendLiveMessage = if (chat.chatInfo.chatType != ChatType.Local) ::sendLiveMessage else null,
+      autoLive = vibeStyle && chat.chatInfo.chatType != ChatType.Local && chatModel.controller.appPrefs.vibeLiveTyping.state.value,
+      sendWithEffect = if (!vibeStyle) null else { effect: VibeEffect ->
+        val cs = composeState.value
+        if (cs.message.text.isNotBlank()) {
+          composeState.value = cs.copy(message = cs.message.copy(text = effect.mark(cs.message.text)))
+        }
+        VibeEffects.play(effect)
+        sendMessage(null)
+        resetLinkPreview()
+      },
       updateLiveMessage = ::updateLiveMessage,
       cancelLiveMessage = {
         composeState.value = composeState.value.copy(liveMessage = null)
@@ -1745,7 +1757,7 @@ fun ComposeView(
     }
 
     Surface(color = MaterialTheme.colors.background, contentColor = MaterialTheme.colors.onBackground) {
-      Divider()
+      if (!vibeStyle) Divider()
       if (chat.chatInfo is ChatInfo.Group && chat.chatInfo.groupInfo.nextConnectPrepared) {
         if (chat.chatInfo.groupInfo.businessChat == null) {
           val isChannel = chat.chatInfo.groupInfo.useRelays
@@ -1820,7 +1832,15 @@ fun ComposeView(
           groupDirectInv = chat.chatInfo.contact.groupDirectInv
         )
       } else {
-        Row(Modifier.padding(end = 8.dp), verticalAlignment = Alignment.Bottom) {
+        Row(
+          if (vibeStyle) Modifier
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colors.surface)
+            .padding(end = 6.dp)
+          else Modifier.padding(end = 8.dp),
+          verticalAlignment = Alignment.Bottom
+        ) {
           AttachmentAndCommandsButtons()
           val broadcastPlaceholder = (chat.chatInfo as? ChatInfo.Group)?.groupInfo?.let { gi ->
             if (gi.useRelays && gi.membership.memberRole >= GroupMemberRole.Owner && chat.chatInfo.groupChatScope() == null) generalGetString(MR.strings.compose_view_broadcast)

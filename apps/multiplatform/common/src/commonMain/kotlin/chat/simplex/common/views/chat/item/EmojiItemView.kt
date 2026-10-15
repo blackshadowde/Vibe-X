@@ -25,11 +25,14 @@ fun EmojiItemView(chatItem: ChatItem, timedMessagesTTL: Int?, showViaProxy: Bool
   val emojiText = chatItem.content.text.trim()
   val isSelected = setupEmojiSelection(LocalSelectionManager.current, LocalItemContext.current.selectionIndex, emojiText.length)
 
+  val vibeRow = chat.simplex.common.views.vibe.LocalVibeRows.current
   Column(
-    Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
-    horizontalAlignment = Alignment.CenterHorizontally
+    Modifier.padding(vertical = if (vibeRow) 4.dp else 8.dp, horizontal = if (vibeRow) 0.dp else 12.dp),
+    horizontalAlignment = if (vibeRow) Alignment.Start else Alignment.CenterHorizontally
   ) {
-    if (isSelected) {
+    if (vibeRow) {
+      chat.simplex.common.views.vibe.VibeBigEmoji(chatItem)
+    } else if (isSelected) {
       Box(Modifier.background(SelectionHighlightColor)) {
         EmojiText(chatItem.content.text)
       }
