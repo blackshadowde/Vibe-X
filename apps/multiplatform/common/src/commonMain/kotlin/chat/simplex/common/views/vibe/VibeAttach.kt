@@ -63,6 +63,13 @@ object VibeAttachSheet {
 
 @Composable
 private fun Sheet(attachmentOption: MutableState<AttachmentOption?>, composeState: MutableState<ComposeState>, close: () -> Unit) {
+  // the keyboard goes away as the pane comes up, as in Vibe
+  val view = chat.simplex.common.platform.LocalMultiplatformView()
+  val focus = androidx.compose.ui.platform.LocalFocusManager.current
+  LaunchedEffect(Unit) {
+    focus.clearFocus(force = true)
+    chat.simplex.common.platform.hideKeyboard(view, clearFocus = true)
+  }
   val gallery = rememberVibeGallery()
   val selected = remember { mutableStateListOf<VibeMediaItem>() }
   val grid = rememberLazyGridState()
