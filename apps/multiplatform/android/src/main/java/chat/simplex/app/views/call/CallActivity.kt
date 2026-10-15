@@ -367,6 +367,10 @@ fun IncomingCallLockScreenAlertLayout(
   acceptCall: () -> Unit,
   openApp: () -> Unit
 ) {
+  if (chat.simplex.common.views.vibe.vibeStyle && callOnLockScreen == CallOnLockScreen.ACCEPT) {
+    chat.simplex.common.views.vibe.VibeIncomingCallFull(invitation, rejectCall, ignoreCall, acceptCall)
+    return
+  }
   Column(
     Modifier
       .padding(30.dp)
@@ -399,11 +403,12 @@ fun IncomingCallLockScreenAlertLayout(
 @Composable
 private fun SimpleXLogo() {
   Image(
-    painter = painterResource(if (isInDarkTheme()) R.drawable.logo_light else R.drawable.logo),
+    painter = if (chat.simplex.common.views.vibe.vibeStyle) dev.icerock.moko.resources.compose.painterResource(chat.simplex.res.MR.images.vibe_logo)
+      else painterResource(if (isInDarkTheme()) R.drawable.logo_light else R.drawable.logo),
     contentDescription = stringResource(MR.strings.image_descr_simplex_logo),
     modifier = Modifier
       .padding(vertical = DEFAULT_PADDING)
-      .fillMaxWidth(0.80f)
+      .then(if (chat.simplex.common.views.vibe.vibeStyle) Modifier.size(96.dp) else Modifier.fillMaxWidth(0.80f))
   )
 }
 

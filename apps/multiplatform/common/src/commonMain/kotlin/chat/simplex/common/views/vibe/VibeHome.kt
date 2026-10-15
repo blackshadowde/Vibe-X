@@ -215,6 +215,17 @@ private fun VibeRailItem(chat: Chat) {
         Icon(VibeIcons.Pin, null, Modifier.size(12.dp), tint = VibeColors.onVariant())
       }
     }
+    // a missed call: a little red phone on the picture
+    val missed = remember(chat.chatItems) { missedCalls(chat).let { it.first + it.second } }
+    if (missed > 0) {
+      Box(
+        Modifier.align(Alignment.TopStart).padding(start = 6.dp).size(20.dp).clip(CircleShape).background(VibeColors.lowest()).padding(2.dp)
+          .clip(CircleShape).background(VibeColors.red),
+        contentAlignment = Alignment.Center
+      ) {
+        Icon(VibeIcons.Call, "Missed call", Modifier.size(11.dp), tint = Color.White)
+      }
+    }
     if (unread > 0) {
       Box(
         Modifier.align(Alignment.TopEnd).padding(end = 6.dp)
@@ -680,6 +691,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
     VibeStatus.clearIfExpired()
     VibeScheduled.start()
     VibeCrash.checkOnStart()
+    VibeUpdater.maybeShowWhatsNew()
     VibeUpdater.maybeCheck()
     // after the update check, so the two never stack
     kotlinx.coroutines.delay(4000)

@@ -405,3 +405,29 @@ object VibeCredits {
     }
   }
 }
+
+/** Shown once after an update. */
+@Composable
+fun VibeWhatsNewSheet(label: String, notes: List<String>, close: () -> Unit) {
+  LaunchedEffect(Unit) { VibeHaptics.success() }
+  Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 16.dp).navigationBarsPadding()) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      Image(painterResource(MR.images.vibe_logo), null, Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
+      Spacer(Modifier.width(14.dp))
+      Column {
+        Text("What's new in Vibe X", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+        Text("You're now on $label", color = VibeColors.onVariant())
+      }
+    }
+    Spacer(Modifier.height(16.dp))
+    for ((i, line) in notes.withIndex()) {
+      Row(Modifier.padding(vertical = 5.dp).vibePopIn(i)) {
+        Box(Modifier.padding(top = 7.dp).size(6.dp).clip(CircleShape).background(VibeColors.blurple))
+        Spacer(Modifier.width(10.dp))
+        Text(line, fontSize = 15.sp, lineHeight = 20.sp, color = VibeColors.onSurface())
+      }
+    }
+    Spacer(Modifier.height(18.dp))
+    BlurpleButton("Got it", null) { close() }
+  }
+}

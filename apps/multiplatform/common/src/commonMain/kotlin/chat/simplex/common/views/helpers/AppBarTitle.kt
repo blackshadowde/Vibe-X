@@ -10,6 +10,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.text.font.FontWeight
 import chat.simplex.common.ui.theme.*
 import chat.simplex.common.views.chatlist.*
 import chat.simplex.res.MR
@@ -54,8 +55,10 @@ fun AppBarTitle(
           alpha = bottomTitleAlpha(connection)
         },
       overflow = TextOverflow.Ellipsis,
-      style = MaterialTheme.typography.h1.copy(brush = brush, lineHeight = lineHeight),
-      color = MaterialTheme.colors.primaryVariant,
+      // Vibe X: a plain big title, like "Change your style"
+      style = if (chat.simplex.common.views.vibe.vibeStyle) MaterialTheme.typography.h1.copy(fontSize = 28.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colors.onBackground, lineHeight = lineHeight)
+        else MaterialTheme.typography.h1.copy(brush = brush, lineHeight = lineHeight),
+      color = if (chat.simplex.common.views.vibe.vibeStyle) MaterialTheme.colors.onBackground else MaterialTheme.colors.primaryVariant,
       textAlign = textAlign
     )
     if (hostDevice != null) {

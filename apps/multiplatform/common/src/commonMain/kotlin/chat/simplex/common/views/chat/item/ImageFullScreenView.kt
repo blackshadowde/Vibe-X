@@ -18,6 +18,9 @@ import chat.simplex.common.ui.theme.CurrentColors
 import chat.simplex.common.views.chat.ProviderMedia
 import chat.simplex.common.views.helpers.*
 import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.net.URI
 import kotlin.math.absoluteValue
@@ -127,7 +130,46 @@ fun ImageFullScreenView(imageProvider: () -> ImageGalleryProvider, close: () -> 
           translationX = 0f
           translationY = 0f
         }
-        val modifier = Modifier
+        // Vibe X: flick a photo down (or up) to close it, unless it's zoomed in
+        val dismiss = remember { androidx.compose.animation.core.Animatable(0f) }
+        val vibeDismiss = if (!chat.simplex.common.views.vibe.vibeStyle) Modifier else Modifier.pointerInput(Unit) {
+          awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            if (scale != 1f) return@awaitEachGesture
+            var dx = 0f
+            var dy = 0f
+            var dragging = false
+            while (true) {
+              val ev = awaitPointerEvent(PointerEventPass.Initial)
+              if (ev.changes.size > 1) break
+              val c = ev.changes.firstOrNull { it.id == down.id } ?: break
+              if (!c.pressed) break
+              dx += c.position.x - c.previousPosition.x
+              dy += c.position.y - c.previousPosition.y
+              if (!dragging) {
+                if (dy.absoluteValue > viewConfiguration.touchSlop && dy.absoluteValue > dx.absoluteValue * 1.5f) dragging = true
+                else if (dx.absoluteValue > viewConfiguration.touchSlop) break
+              }
+              if (dragging) {
+                c.consume()
+                val y = dy
+                scope.launch { dismiss.snapTo(y) }
+              }
+            }
+            if (dragging) {
+              if (dy.absoluteValue > 140.dp.toPx()) {
+                chat.simplex.common.views.vibe.VibeHaptics.light()
+                goBack()
+              } else scope.launch { dismiss.animateTo(0f, chat.simplex.common.views.vibe.VibeSprings.release()) }
+            }
+          }
+        }
+        val modifier = vibeDismiss
+          .graphicsLayer {
+            this.translationY = dismiss.value
+            val s = 1f - (dismiss.value.absoluteValue / 3000f).coerceIn(0f, 0.2f)
+            scaleX = s; scaleY = s
+          }
           .onGloballyPositioned {
             viewWidth = it.size.width
           }

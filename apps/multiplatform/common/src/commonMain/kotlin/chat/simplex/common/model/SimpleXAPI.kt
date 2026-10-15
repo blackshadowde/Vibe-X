@@ -207,6 +207,7 @@ class AppPreferences {
   val vibeSaveMedia = mkBoolPreference("VibeSaveMedia", false)
   val vibeMissedCalls = mkStrPreference("VibeMissedCalls", null)
   val vibeStatusClearAt = mkLongPreference("VibeStatusClearAt", 0L)
+  val vibeSeenBuild = mkIntPreference("VibeSeenBuild", 0)
   val signMessageAlertShown = mkBoolPreference(SHARED_PREFS_SIGN_MESSAGE_ALERT_SHOWN, false)
   val showHiddenProfilesNotice = mkBoolPreference(SHARED_PREFS_SHOW_HIDDEN_PROFILES_NOTICE, true)
   val oneHandUICardShown = mkBoolPreference(SHARED_PREFS_ONE_HAND_UI_CARD_SHOWN, false)

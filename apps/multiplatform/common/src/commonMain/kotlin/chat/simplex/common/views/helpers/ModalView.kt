@@ -42,8 +42,10 @@ fun ModalView(
   }
   val oneHandUI = remember { derivedStateOf { if (appPrefs.onboardingStage.state.value == OnboardingStage.OnboardingComplete) appPrefs.oneHandUI.state.value else false } }
   Surface(Modifier.fillMaxSize(), contentColor = LocalContentColor.current) {
-    val bgOverride = if (cardScreen) canvasColorForCurrentTheme() else if (background != Color.Unspecified) background else null
-    CompositionLocalProvider(LocalCardScreen provides cardScreen) {
+    // Vibe X: every page is made of rounded cards, like Vibe's settings
+    val card = cardScreen || chat.simplex.common.views.vibe.vibeStyle
+    val bgOverride = if (card) canvasColorForCurrentTheme() else if (background != Color.Unspecified) background else null
+    CompositionLocalProvider(LocalCardScreen provides card) {
     Box(Modifier.themedBackground(bgLayerSize = LocalAppBarHandler.current?.backgroundGraphicsLayerSize, bgLayer = LocalAppBarHandler.current?.backgroundGraphicsLayer, overrideColor = bgOverride)) {
       Box(modifier = modifier) {
         content()

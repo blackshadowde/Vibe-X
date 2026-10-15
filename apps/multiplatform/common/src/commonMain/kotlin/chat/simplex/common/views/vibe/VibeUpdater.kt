@@ -219,6 +219,41 @@ object VibeUpdater {
     progress.value = null
   }
 
+  /** After an update, once: "What's new in Vibe X" with this build's release notes. */
+  fun maybeShowWhatsNew() {
+    if (build <= 0) return
+    val seen = appPreferences.vibeSeenBuild.get()
+    if (seen == 0) { appPreferences.vibeSeenBuild.set(build); return } // a fresh install: nothing to tell yet
+    if (seen >= build) return
+    scope.launch {
+      val notes = try {
+        fetchNotes("vibe-x-$version-$build")
+      } catch (e: Throwable) {
+        if (e is CancellationException) throw e
+        return@launch // offline: try again next time
+      }
+      appPreferences.vibeSeenBuild.set(build)
+      if (notes.isNullOrEmpty()) return@launch
+      withContext(Dispatchers.Main) {
+        VibeSheets.show(background = { vibePage() }) { close -> VibeWhatsNewSheet(versionLabel, notes, close) }
+      }
+    }
+  }
+
+  private fun fetchNotes(tag: String): List<String>? {
+    val c = open("https://api.github.com/repos/$REPO/releases/tags/$tag")
+    c.setRequestProperty("Accept", "application/vnd.github+json")
+    try {
+      if (c.responseCode == 404) return null
+      if (c.responseCode != 200) throw Exception("GitHub answered ${c.responseCode}")
+      val body = c.inputStream.bufferedReader().use { it.readText() }
+      val j = Json.parseToJsonElement(body).jsonObject
+      return notesFrom(j["body"]?.jsonPrimitive?.contentOrNull ?: "")
+    } finally {
+      c.disconnect()
+    }
+  }
+
   /* ------------------------------------------------------------ GitHub --- */
 
   private fun open(url: String, readTimeout: Int = 15_000): HttpURLConnection {

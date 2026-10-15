@@ -606,6 +606,7 @@ data class ThemeModeOverride (
 fun canvasColorForCurrentTheme(): Color {
   val theme = CurrentColors.value
   val c = theme.colors
+  if (chat.simplex.common.views.vibe.vibeStyle) return if (c.isLight) Color.White else Color(0xFF1A191E)
   return when (theme.base) {
     DefaultTheme.LIGHT -> c.background.mixWith(c.onBackground, 0.94f)
     DefaultTheme.SIMPLEX -> c.background.darker(0.4f)
@@ -618,6 +619,8 @@ fun canvasColorForCurrentTheme(): Color {
 // above palette bg using onBackground tint).
 fun sectionCardColor(): Color {
   val theme = CurrentColors.value
+  // Vibe X: Vibe's card colours
+  if (chat.simplex.common.views.vibe.vibeStyle) return if (theme.colors.isLight) Color(0xFFF2F3F5) else Color(0xFF26252B)
   return if (theme.base == DefaultTheme.LIGHT) Color.White
   else theme.colors.background.mixWith(theme.colors.onBackground, 0.95f)
 }

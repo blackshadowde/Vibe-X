@@ -53,6 +53,10 @@ fun IncomingCallAlertLayout(
   ignoreCall: () -> Unit,
   acceptCall: () -> Unit
 ) {
+  if (chat.simplex.common.views.vibe.vibeStyle) {
+    chat.simplex.common.views.vibe.VibeIncomingCallBanner(invitation, rejectCall, ignoreCall, acceptCall)
+    return
+  }
   val color = if (isInDarkTheme()) MaterialTheme.colors.surface else IncomingCallLight
   Column(Modifier.fillMaxWidth().background(color).statusBarsPadding().padding(top = DEFAULT_PADDING, bottom = DEFAULT_PADDING, start = DEFAULT_PADDING, end = 8.dp)) {
     IncomingCallInfo(invitation, chatModel)

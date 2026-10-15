@@ -28,7 +28,7 @@ import chat.simplex.common.views.onboarding.SelectableCard
 import chat.simplex.common.views.usersettings.SettingsActionItemWithContent
 import chat.simplex.res.MR
 
-val SectionCardShape = RoundedCornerShape(16.dp)
+val SectionCardShape = RoundedCornerShape(if (chat.simplex.common.views.vibe.vibeStyle) 24.dp else 16.dp)
 val CARD_PADDING = 18.dp
 val ICON_TEXT_SPACING = 8.dp
 
