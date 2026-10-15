@@ -47,7 +47,7 @@ object VibeStarred {
   fun toggle(chatInfo: ChatInfo, item: ChatItem) {
     if (isStarred(chatInfo.id, item.id)) {
       save(all.value.filterNot { it.chatId == chatInfo.id && it.itemId == item.id })
-      showToast("Removed bookmark")
+      showToast(vt("Removed bookmark"))
     } else {
       val (name, _) = vibeSender(chatInfo, item)
       save(
@@ -56,7 +56,7 @@ object VibeStarred {
           VibeEffect.strip(item.text).take(300), item.meta.itemTs.toEpochMilliseconds()
         )
       )
-      showToast("Bookmarked")
+      showToast(vt("Bookmarked"))
     }
   }
 }

@@ -262,7 +262,7 @@ fun VibeVoiceButton(enabled: Boolean = true, onStart: () -> Unit, onClick: (() -
       .clip(CircleShape)
       .combinedClickable(
         onClick = {
-          if (onClick != null) onClick() else showToast("Long press to record a voice message")
+          if (onClick != null) onClick() else showToast(vt("Long press to record a voice message"))
         },
         onLongClick = {
           if (onClick != null) onClick() else {

@@ -30,7 +30,7 @@ object VibeSendOptions {
           maxLines = 2, overflow = TextOverflow.Ellipsis, fontStyle = FontStyle.Italic, color = VibeColors.onVariant()
         )
         if (sendWithEffect != null) {
-          Text("Send with effect", Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 10.dp), fontSize = 15.sp, color = VibeColors.onVariant())
+          Text(vt("Send with effect"), Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 10.dp), fontSize = 15.sp, color = VibeColors.onVariant())
           Column(
             Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard()).padding(vertical = 10.dp, horizontal = 6.dp)
           ) {
@@ -52,7 +52,7 @@ object VibeSendOptions {
           }
         }
         if (sendLater != null) {
-          Text("Send later", Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 10.dp), fontSize = 15.sp, color = VibeColors.onVariant())
+          Text(vt("Send later"), Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 10.dp), fontSize = 15.sp, color = VibeColors.onVariant())
           Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
             for ((label, at) in VibeScheduled.presets()) {
               Row(Modifier.fillMaxWidth().clickable { close(); sendLater(at) }.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -67,7 +67,7 @@ object VibeSendOptions {
         if (sendTimed != null) {
           Spacer(Modifier.height(12.dp))
           Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
-            for ((label, secs) in listOf("Disappears after 30 seconds" to 30, "Disappears after 1 minute" to 60, "Disappears after 5 minutes" to 300, "Disappears after 1 hour" to 3600)) {
+            for ((label, secs) in listOf(vt("Disappears after 30 seconds") to 30, vt("Disappears after 1 minute") to 60, vt("Disappears after 5 minutes") to 300, vt("Disappears after 1 hour") to 3600)) {
               Row(Modifier.fillMaxWidth().clickable { close(); sendTimed(secs) }.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(painterResource(MR.images.ic_timer), null, Modifier.size(22.dp), tint = VibeColors.onSurface())
                 Spacer(Modifier.width(16.dp))

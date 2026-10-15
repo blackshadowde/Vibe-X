@@ -66,7 +66,7 @@ fun VibeMediaViewer(provider: ImageGalleryProvider, pager: PagerState, close: ()
       Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp).graphicsLayer { alpha = fade }
         .size(44.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f)).clickable { close() },
       contentAlignment = Alignment.Center
-    ) { Icon(VibeIcons.Close, "Close", tint = Color.White) }
+    ) { Icon(VibeIcons.Close, vt("Close"), tint = Color.White) }
     // thumbnails
     val strip = remember { provider.vibeStrip() }
     if (strip.size > 1) {

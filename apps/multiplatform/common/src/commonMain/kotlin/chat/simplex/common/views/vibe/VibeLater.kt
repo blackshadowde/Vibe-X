@@ -143,13 +143,13 @@ object VibeScheduled {
       add(Calendar.DAY_OF_YEAR, daysAhead); set(Calendar.HOUR_OF_DAY, hour); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }.timeInMillis
     val out = mutableListOf(
-      "In 30 minutes" to now + 30 * 60_000L,
-      "In 1 hour" to now + 60 * 60_000L,
-      "In 3 hours" to now + 3 * 60 * 60_000L,
+      vt("In 30 minutes") to now + 30 * 60_000L,
+      vt("In 1 hour") to now + 60 * 60_000L,
+      vt("In 3 hours") to now + 3 * 60 * 60_000L,
     )
-    if (at(0, 21) - now > 60 * 60_000L) out.add("Tonight at 9 PM" to at(0, 21))
-    out.add("Tomorrow at 8 AM" to at(1, 8))
-    out.add("Tomorrow at 6 PM" to at(1, 18))
+    if (at(0, 21) - now > 60 * 60_000L) out.add(vt("Tonight at 9 PM") to at(0, 21))
+    out.add(vt("Tomorrow at 8 AM") to at(1, 8))
+    out.add(vt("Tomorrow at 6 PM") to at(1, 18))
     return out
   }
 }
@@ -181,15 +181,15 @@ private fun showScheduled(chat: Chat) {
     val items = VibeScheduled.forChat(chat.id)
     if (items.isEmpty()) LaunchedEffect(Unit) { close() }
     Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 16.dp)) {
-      Text("Scheduled", Modifier.padding(start = 20.dp, bottom = 10.dp), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+      Text(vt("Scheduled"), Modifier.padding(start = 20.dp, bottom = 10.dp), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
       for (m in items) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(vibeCard()).padding(14.dp)) {
           Text(VibeScheduled.whenText(m.at).replaceFirstChar { it.uppercase() }, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = VibeColors.blurple)
           Spacer(Modifier.height(4.dp))
           Text(m.text, maxLines = 4, overflow = TextOverflow.Ellipsis, color = VibeColors.onSurface())
           Row(Modifier.padding(top = 8.dp)) {
-            Text("Send now", Modifier.clip(RoundedCornerShape(12.dp)).clickable { VibeScheduled.sendNow(m) }.padding(horizontal = 10.dp, vertical = 6.dp), color = VibeColors.blurple, fontWeight = FontWeight.SemiBold)
-            Text("Delete", Modifier.clip(RoundedCornerShape(12.dp)).clickable { VibeScheduled.remove(m.id) }.padding(horizontal = 10.dp, vertical = 6.dp), color = VibeColors.red, fontWeight = FontWeight.SemiBold)
+            Text(vt("Send now"), Modifier.clip(RoundedCornerShape(12.dp)).clickable { VibeScheduled.sendNow(m) }.padding(horizontal = 10.dp, vertical = 6.dp), color = VibeColors.blurple, fontWeight = FontWeight.SemiBold)
+            Text(vt("Delete"), Modifier.clip(RoundedCornerShape(12.dp)).clickable { VibeScheduled.remove(m.id) }.padding(horizontal = 10.dp, vertical = 6.dp), color = VibeColors.red, fontWeight = FontWeight.SemiBold)
           }
         }
       }

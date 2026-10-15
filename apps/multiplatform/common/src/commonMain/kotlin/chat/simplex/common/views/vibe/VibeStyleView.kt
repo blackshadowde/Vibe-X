@@ -48,7 +48,7 @@ fun VibeStyleView() {
   // keeps clear of the top bar and the status bar, like every settings page
   chat.simplex.common.platform.ColumnWithScrollBar {
     Text(
-      "Change your style", Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp),
+      vt("Change your style"), Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp),
       fontSize = 28.sp, color = VibeColors.onSurface()
     )
     // theme
@@ -61,26 +61,26 @@ fun VibeStyleView() {
       }
       val outline = VibeColors.onVariant().copy(alpha = 0.6f)
       Row(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(24.dp)).border(1.dp, outline, RoundedCornerShape(24.dp))) {
-        Segment(VibeIcons.LightMode, "Light", mode == 0, Modifier.weight(1f)) { ThemeManager.applyTheme(DefaultTheme.LIGHT.themeName) }
+        Segment(VibeIcons.LightMode, vt("Light"), mode == 0, Modifier.weight(1f)) { ThemeManager.applyTheme(DefaultTheme.LIGHT.themeName) }
         Box(Modifier.width(1.dp).fillMaxHeight().background(outline))
-        Segment(VibeIcons.DarkMode, "Dark", mode == 1, Modifier.weight(1f)) {
+        Segment(VibeIcons.DarkMode, vt("Dark"), mode == 1, Modifier.weight(1f)) {
           ThemeManager.changeDarkTheme(DefaultTheme.DARK.themeName)
           ThemeManager.applyTheme(DefaultTheme.DARK.themeName)
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(outline))
-        Segment(VibeIcons.Check, "System", mode == 2, Modifier.weight(1f)) {
+        Segment(VibeIcons.Check, vt("System"), mode == 2, Modifier.weight(1f)) {
           ThemeManager.changeDarkTheme(DefaultTheme.DARK.themeName)
           ThemeManager.applyTheme(DefaultTheme.SYSTEM_THEME_NAME)
         }
       }
     }
-    Text("Messages:", Modifier.padding(start = 24.dp, top = 22.dp, bottom = 10.dp), fontSize = 16.sp, color = muted)
+    Text(vt("Messages:"), Modifier.padding(start = 24.dp, top = 22.dp, bottom = 10.dp), fontSize = 16.sp, color = muted)
     val size = vibeMessageTextSize()
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(vibeCard())) {
       Preview(size)
       Divider(color = VibeColors.divider())
       Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("Text size", Modifier.weight(1f), fontSize = 17.sp, color = VibeColors.onSurface())
+        Text(vt("Text size"), Modifier.weight(1f), fontSize = 17.sp, color = VibeColors.onSurface())
         Text("$size", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = VibeColors.onSurface())
       }
       Divider(color = VibeColors.divider())
@@ -111,8 +111,8 @@ fun VibeStyleView() {
         verticalAlignment = Alignment.CenterVertically
       ) {
         Column(Modifier.weight(1f)) {
-          Text("Haptic feedback", fontSize = 17.sp, color = VibeColors.onSurface())
-          Text("Vibrate gently on taps, menus and reactions", fontSize = 14.sp, color = muted)
+          Text(vt("Haptic feedback"), fontSize = 17.sp, color = VibeColors.onSurface())
+          Text(vt("Vibrate gently on taps, menus and reactions"), fontSize = 14.sp, color = muted)
         }
         Switch(
           checked = haptics,
@@ -147,7 +147,7 @@ private fun Segment(icon: ImageVector, label: String, selected: Boolean, modifie
 @Composable
 private fun Preview(size: Int) {
   val user = chatModel.currentUser.value
-  val me = user?.displayName ?: "You"
+  val me = user?.displayName ?: vt("You")
   val now = Clock.System.now()
   val line = VibeColors.onVariant().copy(alpha = 0.45f)
   Column(

@@ -55,7 +55,7 @@ fun VibeChatTitle(info: ChatInfo, onAvatar: () -> Unit) {
       val sub = chatModel.chatSubStatus.value
       val line = when {
         info is ChatInfo.Direct && !info.contact.ready -> "connecting…"
-        info is ChatInfo.Direct && sub != null && sub != SubscriptionStatus.Active -> "Connecting to server…"
+        info is ChatInfo.Direct && sub != null && sub != SubscriptionStatus.Active -> vt("Connecting to server…")
         else -> null
       }
       AnimatedVisibility(line != null, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
@@ -112,8 +112,8 @@ fun vibeDayLabel(ts: Instant): String {
   val d = ts.toLocalDateTime(tz).date
   val today = Clock.System.now().toLocalDateTime(tz).date
   return when (d) {
-    today -> "Today"
-    today.minus(1, DateTimeUnit.DAY) -> "Yesterday"
+    today -> vt("Today")
+    today.minus(1, DateTimeUnit.DAY) -> vt("Yesterday")
     else -> DateFormat.getDateInstance(DateFormat.LONG).format(Date(ts.toEpochMilliseconds()))
   }
 }
@@ -148,7 +148,7 @@ private fun quoteSender(quote: CIQuote, info: ChatInfo): Pair<String, String?> {
     is CIDirection.DirectRcv -> info.displayName to info.image
     is CIDirection.ChannelRcv -> info.displayName to info.image
     null -> (quote.sender(null) ?: "") to null
-    else -> (if (info is ChatInfo.Group) info.groupInfo.membership.displayName else user?.displayName ?: "You") to user?.image
+    else -> (if (info is ChatInfo.Group) info.groupInfo.membership.displayName else user?.displayName ?: vt("You")) to user?.image
   }
 }
 
@@ -186,7 +186,7 @@ fun VibeReplyStrip(quote: CIQuote, info: ChatInfo, onClick: () -> Unit) {
     Spacer(Modifier.width(6.dp))
     val preview = VibeEffect.strip(quote.text).ifBlank { quote.content.text }.replace('\n', ' ')
     Text(
-      preview.ifBlank { "Attachment" }, fontSize = 13.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+      preview.ifBlank { vt("Attachment") }, fontSize = 13.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
       color = VibeColors.onVariant(), modifier = Modifier.weight(1f),
       fontStyle = if (preview.isBlank()) FontStyle.Italic else FontStyle.Normal
     )
@@ -277,7 +277,7 @@ fun VibeTicks(ci: ChatItem, modifier: Modifier = Modifier) {
     is CIStatus.SndErrorAuth, is CIStatus.CISSndError -> Row(modifier, verticalAlignment = Alignment.CenterVertically) {
       Icon(VibeIcons.Error, null, Modifier.size(16.dp), tint = VibeColors.red)
       Spacer(Modifier.width(4.dp))
-      Text("Could not be sent", fontSize = 12.sp, color = VibeColors.red)
+      Text(vt("Could not be sent"), fontSize = 12.sp, color = VibeColors.red)
     }
     is CIStatus.SndWarning -> Icon(VibeIcons.Error, null, modifier.size(16.dp), tint = Color(0xFFFAA61A))
     else -> {}
@@ -299,7 +299,7 @@ fun VibeReplyDisplay(label: String?, bold: String?, onClose: () -> Unit) {
         Modifier.weight(1f), fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
       )
       Box(Modifier.size(38.dp).clip(CircleShape).background(VibeColors.highest()).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-        Icon(VibeIcons.Close, "Close", Modifier.size(20.dp), tint = VibeColors.onSurface())
+        Icon(VibeIcons.Close, vt("Close"), Modifier.size(20.dp), tint = VibeColors.onSurface())
       }
     }
   }
@@ -318,10 +318,10 @@ fun VibeLiveToggle() {
       pref.set(!on)
       VibeHaptics.medium()
       scope.launch { scale.snapTo(1.3f); scale.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 500f)) }
-      chat.simplex.common.platform.showToast(if (!on) "Live typing on: they see your words as you type" else "Live typing off: they see typing dots")
+      chat.simplex.common.platform.showToast(if (!on) vt("Live typing on: they see your words as you type") else vt("Live typing off: they see typing dots"))
     },
     contentAlignment = Alignment.Center
   ) {
-    Icon(VibeIcons.Bolt, "Live typing", Modifier.size(22.dp).graphicsLayer { scaleX = scale.value; scaleY = scale.value }, tint = tint)
+    Icon(VibeIcons.Bolt, vt("Live typing"), Modifier.size(22.dp).graphicsLayer { scaleX = scale.value; scaleY = scale.value }, tint = tint)
   }
 }

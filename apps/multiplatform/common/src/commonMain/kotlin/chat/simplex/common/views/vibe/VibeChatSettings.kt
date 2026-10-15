@@ -43,13 +43,13 @@ fun VibeChatSettingsView() {
   val low = appPreferences.vibeLowData.state.value
   val save = appPreferences.vibeSaveMedia.state.value
   ColumnWithScrollBar {
-    Text("Chat", Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp), fontSize = 28.sp, color = VibeColors.onSurface())
+    Text(vt("Chat"), Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp), fontSize = 28.sp, color = VibeColors.onSurface())
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(vibeCard())) {
-      SwitchRow(VibeIcons.DataSaver, "Low data mode", "Photos and videos load only when you tap them; no animated emoji", low) {
+      SwitchRow(VibeIcons.DataSaver, vt("Low data mode"), vt("Photos and videos load only when you tap them; no animated emoji"), low) {
         appPreferences.vibeLowData.set(it)
       }
       Divider(color = VibeColors.divider())
-      SwitchRow(VibeIcons.Download, "Save media to gallery", "Photos and videos you receive go to Pictures › Vibe X", save) {
+      SwitchRow(VibeIcons.Download, vt("Save media to gallery"), vt("Photos and videos you receive go to Pictures › Vibe X"), save) {
         appPreferences.vibeSaveMedia.set(it)
       }
       Divider(color = VibeColors.divider())
@@ -59,7 +59,7 @@ fun VibeChatSettingsView() {
       ) {
         Icon(VibeIcons.Storage, null, Modifier.size(24.dp), tint = VibeColors.onSurface())
         Spacer(Modifier.width(16.dp))
-        Text("Storage & cache", Modifier.weight(1f), fontSize = 16.sp, color = VibeColors.onSurface())
+        Text(vt("Storage & cache"), Modifier.weight(1f), fontSize = 16.sp, color = VibeColors.onSurface())
       }
     }
     Spacer(Modifier.height(24.dp))
@@ -101,7 +101,7 @@ fun VibeStorageView() {
   LaunchedEffect(Unit) { measure() }
   val total = (files?.second ?: 0) + (cache ?: 0) + (db ?: 0)
   ColumnWithScrollBar {
-    Text("Storage & cache", Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp), fontSize = 28.sp, color = VibeColors.onSurface())
+    Text(vt("Storage & cache"), Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp), fontSize = 28.sp, color = VibeColors.onSurface())
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(vibeCard()).padding(18.dp)) {
       Text(formatBytes(total), fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
       Text("used by Vibe X on this phone", color = VibeColors.onVariant())
@@ -112,28 +112,28 @@ fun VibeStorageView() {
         for ((size, color) in parts) if (size > 0 && total > 0) Box(Modifier.weight(size.toFloat() / total).fillMaxHeight().background(color))
       }
       Spacer(Modifier.height(14.dp))
-      Legend(VibeColors.blurple, "Messages (database)", db)
-      Legend(VibeColors.green, "Photos, videos, files" + (files?.first?.let { " · $it" } ?: ""), files?.second)
-      Legend(Color(0xFFFAA61A), "Cache", cache)
+      Legend(VibeColors.blurple, vt("Messages (database)"), db)
+      Legend(VibeColors.green, vt("Photos, videos, files") + (files?.first?.let { " · $it" } ?: ""), files?.second)
+      Legend(Color(0xFFFAA61A), vt("Cache"), cache)
     }
     Spacer(Modifier.height(16.dp))
     Column(Modifier.padding(horizontal = 16.dp)) {
-      Button("Clear cache", "Emoji animations, previews and downloaded updates. They come back when needed.") {
+      Button(vt("Clear cache"), "Emoji animations, previews and downloaded updates. They come back when needed.") {
         scope.launch {
           withContext(Dispatchers.IO) {
             vibeCacheDirs().forEach { runCatching { it.listFiles()?.forEach { f -> f.deleteRecursively() } } }
           }
           VibeHaptics.success()
-          showToast("Cache cleared")
+          showToast(vt("Cache cleared"))
           measure()
         }
       }
       Spacer(Modifier.height(10.dp))
-      Button("Delete all photos, videos and files", "From every chat, on this phone only. Messages stay.", red = true) {
+      Button(vt("Delete all photos, videos and files"), "From every chat, on this phone only. Messages stay.", red = true) {
         AlertManager.shared.showAlertDialog(
-          title = "Delete all files?",
+          title = vt("Delete all files?"),
           text = "Every photo, video, voice note and file in your chats will be removed from this phone. This can't be undone.",
-          confirmText = "Delete",
+          confirmText = vt("Delete"),
           destructive = true,
           onConfirm = {
             deleteAppFiles()
@@ -184,7 +184,7 @@ object VibeCrash {
     Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
       Text("😵", fontSize = 36.sp)
       Spacer(Modifier.height(6.dp))
-      Text("Vibe X stopped last time", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+      Text(vt("Vibe X stopped last time"), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
       Text(
         "Sorry about that. If you send this report to the developer, the problem can be found and fixed. It has no messages or contacts in it.",
         Modifier.padding(top = 6.dp, bottom = 12.dp), color = VibeColors.onVariant(), lineHeight = 20.sp
@@ -197,11 +197,11 @@ object VibeCrash {
         Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(25.dp)).background(VibeColors.blurple)
           .clickable {
             clipboard.setText(AnnotatedString(report))
-            showToast("Report copied")
+            showToast(vt("Report copied"))
             close()
           },
         contentAlignment = Alignment.Center
-      ) { Text("Copy report", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+      ) { Text(vt("Copy report"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
       Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
         Text(
           "Report on GitHub", Modifier.clip(RoundedCornerShape(12.dp)).clickable {
@@ -210,7 +210,7 @@ object VibeCrash {
             close()
           }.padding(12.dp), color = VibeColors.blurple, fontWeight = FontWeight.SemiBold
         )
-        Text("Dismiss", Modifier.clip(RoundedCornerShape(12.dp)).clickable { close() }.padding(12.dp), color = VibeColors.onVariant(), fontWeight = FontWeight.SemiBold)
+        Text(vt("Dismiss"), Modifier.clip(RoundedCornerShape(12.dp)).clickable { close() }.padding(12.dp), color = VibeColors.onVariant(), fontWeight = FontWeight.SemiBold)
       }
     }
   }

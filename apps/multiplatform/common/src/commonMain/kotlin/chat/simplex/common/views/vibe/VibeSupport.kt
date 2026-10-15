@@ -38,7 +38,7 @@ object VibeSupport {
 
   /** Standard UPI link: any UPI app (GPay, PhonePe, Paytm, BHIM…) opens it. */
   val upiLink: String
-    get() = "upi://pay?pa=$UPI_ID&pn=${enc(PAYEE)}&tn=${enc("Support Vibe X")}&cu=INR"
+    get() = "upi://pay?pa=$UPI_ID&pn=${enc(PAYEE)}&tn=${enc(vt("Support Vibe X"))}&cu=INR"
 
   private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 
@@ -73,10 +73,10 @@ object VibeSupport {
     ) {
       Text("❤️", fontSize = 40.sp)
       Spacer(Modifier.height(8.dp))
-      Text("Enjoying Vibe X?", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+      Text(vt("Enjoying Vibe X?"), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
       Spacer(Modifier.height(8.dp))
       Text(
-        "Vibe X is free, with no ads and no tracking. It is built by one person. If it helps you stay in touch, a small UPI donation keeps it going.",
+        vt("Vibe X is free, with no ads and no tracking. It is built by one person. If it helps you stay in touch, a small UPI donation keeps it going."),
         textAlign = TextAlign.Center, lineHeight = 20.sp, color = VibeColors.onVariant()
       )
       Spacer(Modifier.height(20.dp))
@@ -87,12 +87,12 @@ object VibeSupport {
       ) {
         Text("❤", color = Color.White, fontSize = 16.sp)
         Spacer(Modifier.width(8.dp))
-        Text("Support Vibe X", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(vt("Support Vibe X"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
       }
       Spacer(Modifier.height(4.dp))
       Row {
-        Link("Maybe later") { close() }
-        Link("Don't ask again") { appPreferences.vibeSupportNever.set(true); close() }
+        Link(vt("Maybe later")) { close() }
+        Link(vt("Don't ask again")) { appPreferences.vibeSupportNever.set(true); close() }
       }
     }
   }
@@ -115,10 +115,10 @@ fun VibeSupportView() {
   ColumnWithScrollBar(horizontalAlignment = Alignment.CenterHorizontally) {
     Text("❤️", Modifier.padding(top = 8.dp), fontSize = 44.sp)
     Spacer(Modifier.height(8.dp))
-    Text("Keep Vibe X free", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+    Text(vt("Keep Vibe X free"), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
     Spacer(Modifier.height(8.dp))
     Text(
-      "No ads, no tracking, no paid features. Donations pay for development and testing. Any amount helps. Thank you!",
+      vt("No ads, no tracking, no paid features. Donations pay for development and testing. Any amount helps. Thank you!"),
       Modifier.padding(horizontal = 24.dp), textAlign = TextAlign.Center, lineHeight = 20.sp, color = muted
     )
     Spacer(Modifier.height(24.dp))
@@ -129,7 +129,7 @@ fun VibeSupportView() {
     ) {
       QRCode(VibeSupport.upiLink, padding = PaddingValues(0.dp), tintColor = Color(0xFF111214), withLogo = false)
       Spacer(Modifier.height(10.dp))
-      Text("Scan with any UPI app", color = Color(0xFF4E5058), fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+      Text(vt("Scan with any UPI app"), color = Color(0xFF4E5058), fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
     }
     Spacer(Modifier.height(22.dp))
     Row(
@@ -137,7 +137,7 @@ fun VibeSupportView() {
         .clickable {
           clipboard.setText(AnnotatedString(VibeSupport.UPI_ID))
           VibeHaptics.light()
-          showToast("UPI ID copied")
+          showToast(vt("UPI ID copied"))
         }
         .padding(horizontal = 16.dp, vertical = 14.dp),
       verticalAlignment = Alignment.CenterVertically
@@ -149,7 +149,7 @@ fun VibeSupportView() {
       }
       Icon(VibeIcons.Copy, null, Modifier.size(20.dp), tint = VibeColors.onSurface())
       Spacer(Modifier.width(6.dp))
-      Text("Copy", color = VibeColors.onSurface())
+      Text(vt("Copy"), color = VibeColors.onSurface())
     }
     Spacer(Modifier.height(14.dp))
     Row(
@@ -161,11 +161,11 @@ fun VibeSupportView() {
         },
       horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
     ) {
-      Text("Pay with a UPI app", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+      Text(vt("Pay with a UPI app"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
     Spacer(Modifier.height(10.dp))
     Text(
-      "Opens GPay, PhonePe, Paytm or BHIM. If your app blocks it, copy the UPI ID and pay from inside the app.",
+      vt("Opens GPay, PhonePe, Paytm or BHIM. If your app blocks it, copy the UPI ID and pay from inside the app."),
       Modifier.padding(horizontal = 24.dp), textAlign = TextAlign.Center, fontSize = 12.5.sp, color = muted
     )
     Spacer(Modifier.height(32.dp))

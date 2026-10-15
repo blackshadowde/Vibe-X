@@ -42,7 +42,7 @@ private class Page(val kicker: String, val title: String, val body: String, val 
 
 private val pages = listOf(
   Page(
-    "Welcome to Vibe X",
+    vt("Welcome to Vibe X"),
     "Chat that stays between you and them",
     "Vibe X is a private messenger on an open network that has no user IDs of any kind, not even random numbers. Here is how it keeps you safer, in 30 seconds.",
     listOf(
@@ -73,8 +73,8 @@ private val pages = listOf(
     "Safer in the details too",
     "Privacy is not just encryption. Vibe X keeps the small stuff quiet as well.",
     listOf(
-      Fact(VibeIcons.Bolt, "Live typing", "They see your words as you type. Tap ⚡ in the message box to turn it off."),
-      Fact(VibeIcons.Delete, "Disappearing messages", "Long-press send to make a message vanish after a while."),
+      Fact(VibeIcons.Bolt, vt("Live typing"), "They see your words as you type. Tap ⚡ in the message box to turn it off."),
+      Fact(VibeIcons.Delete, vt("Disappearing messages"), "Long-press send to make a message vanish after a while."),
       Fact(VibeIcons.Check, "Open source", "Built on an open, audited protocol anyone can inspect."),
     )
   ),
@@ -110,7 +110,7 @@ fun VibeWelcome(chatModel: ChatModel, onDone: (() -> Unit)? = null) {
         // already have Vibe X: log in with your backup
         if (onDone == null && chatModel.currentUser.value == null) VibeAccount.LogInButton()
         if (!last) {
-          Text("Skip", Modifier.clip(RoundedCornerShape(12.dp)).clickable { finish() }.padding(horizontal = 12.dp, vertical = 8.dp), color = lavender, fontWeight = FontWeight.SemiBold)
+          Text(vt("Skip"), Modifier.clip(RoundedCornerShape(12.dp)).clickable { finish() }.padding(horizontal = 12.dp, vertical = 8.dp), color = lavender, fontWeight = FontWeight.SemiBold)
         }
       }
       HorizontalPager(pager, Modifier.weight(1f)) { i ->
@@ -132,7 +132,7 @@ fun VibeWelcome(chatModel: ChatModel, onDone: (() -> Unit)? = null) {
             .padding(horizontal = if (last) 28.dp else 24.dp).animateContentSize(),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Text(if (last) (if (onDone != null) "Done" else "Get started") else "Next", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+          Text(if (last) (if (onDone != null) vt("Done") else vt("Get started")) else vt("Next"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
           Spacer(Modifier.width(8.dp))
           Icon(VibeIcons.ArrowBack, null, Modifier.size(18.dp).graphicsLayer { rotationZ = 180f }, tint = Color.White)
         }
@@ -219,7 +219,7 @@ private fun Hero(index: Int) {
         )
       }
       1 -> Row(verticalAlignment = Alignment.CenterVertically) {
-        Node("You")
+        Node(vt("You"))
         Box(Modifier.width(110.dp).height(30.dp)) {
           val x = (t * 1.4f).coerceAtMost(1f)
           Text(

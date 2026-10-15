@@ -57,7 +57,7 @@ fun VibeCallHero(image: String?, name: String, connected: Boolean) {
   Spacer(Modifier.height(4.dp))
 }
 
-private fun RcvCallInvitation.vibeKind() = if (callType.media == CallMediaType.Video) "Incoming video call" else "Incoming voice call"
+private fun RcvCallInvitation.vibeKind() = if (callType.media == CallMediaType.Video) vt("Incoming video call") else vt("Incoming voice call")
 
 /** A call coming in while you use the app: a card that drops in from the top, with Decline and Accept. */
 @Composable
@@ -98,12 +98,12 @@ fun VibeIncomingCallBanner(invitation: RcvCallInvitation, reject: () -> Unit, ig
         }
       }
       Box(Modifier.size(36.dp).clip(CircleShape).clickable { ignore() }, contentAlignment = Alignment.Center) {
-        Icon(VibeIcons.Close, "Ignore", Modifier.size(20.dp), tint = Color(0xFFB5BAC1))
+        Icon(VibeIcons.Close, vt("Ignore"), Modifier.size(20.dp), tint = Color(0xFFB5BAC1))
       }
       Spacer(Modifier.width(6.dp))
-      RoundCallButton(VibeIcons.CallEnd, VibeColors.red, 48.dp, "Decline") { VibeHaptics.medium(); reject() }
+      RoundCallButton(VibeIcons.CallEnd, VibeColors.red, 48.dp, vt("Decline")) { VibeHaptics.medium(); reject() }
       Spacer(Modifier.width(10.dp))
-      RoundCallButton(if (video) VibeIcons.Videocam else VibeIcons.Call, VibeColors.green, 48.dp, "Accept") { VibeHaptics.success(); accept() }
+      RoundCallButton(if (video) VibeIcons.Videocam else VibeIcons.Call, VibeColors.green, 48.dp, vt("Accept")) { VibeHaptics.success(); accept() }
     }
   }
 }
@@ -128,20 +128,20 @@ fun VibeIncomingCallFull(invitation: RcvCallInvitation, reject: () -> Unit, igno
     Spacer(Modifier.weight(1.3f))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        RoundCallButton(VibeIcons.CallEnd, VibeColors.red, 72.dp, "Decline") { VibeHaptics.medium(); reject() }
+        RoundCallButton(VibeIcons.CallEnd, VibeColors.red, 72.dp, vt("Decline")) { VibeHaptics.medium(); reject() }
         Spacer(Modifier.height(8.dp))
-        Text("Decline", color = Color.White, fontSize = 14.sp)
+        Text(vt("Decline"), color = Color.White, fontSize = 14.sp)
       }
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.graphicsLayer { translationY = -bob * 8.dp.toPx() }) {
-          RoundCallButton(if (video) VibeIcons.Videocam else VibeIcons.Call, VibeColors.green, 72.dp, "Accept") { VibeHaptics.success(); accept() }
+          RoundCallButton(if (video) VibeIcons.Videocam else VibeIcons.Call, VibeColors.green, 72.dp, vt("Accept")) { VibeHaptics.success(); accept() }
         }
         Spacer(Modifier.height(8.dp))
-        Text("Accept", color = Color.White, fontSize = 14.sp)
+        Text(vt("Accept"), color = Color.White, fontSize = 14.sp)
       }
     }
     Spacer(Modifier.height(16.dp))
-    Text("Ignore", Modifier.clip(RoundedCornerShape(16.dp)).clickable { ignore() }.padding(horizontal = 16.dp, vertical = 8.dp), color = Color(0xFFB5BAC1))
+    Text(vt("Ignore"), Modifier.clip(RoundedCornerShape(16.dp)).clickable { ignore() }.padding(horizontal = 16.dp, vertical = 8.dp), color = Color(0xFFB5BAC1))
   }
 }
 

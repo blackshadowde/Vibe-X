@@ -77,9 +77,9 @@ private fun Sheet(attachmentOption: MutableState<AttachmentOption?>, composeStat
   Box(Modifier.fillMaxWidth().fillMaxHeight()) {
     if (!gallery.granted) {
       Column(Modifier.fillMaxWidth().padding(top = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Allow access to photos to attach media", color = VibeColors.onSurface())
+        Text(vt("Allow access to photos to attach media"), color = VibeColors.onSurface())
         Spacer(Modifier.height(8.dp))
-        Text("Allow", Modifier.clip(RoundedCornerShape(12.dp)).clickable { gallery.request() }.padding(horizontal = 16.dp, vertical = 8.dp), color = VibeColors.blurple, fontWeight = FontWeight.SemiBold)
+        Text(vt("Allow"), Modifier.clip(RoundedCornerShape(12.dp)).clickable { gallery.request() }.padding(horizontal = 16.dp, vertical = 8.dp), color = VibeColors.blurple, fontWeight = FontWeight.SemiBold)
       }
     } else {
       LazyVerticalGrid(
@@ -94,7 +94,7 @@ private fun Sheet(attachmentOption: MutableState<AttachmentOption?>, composeStat
               .clickable { close(); attachmentOption.value = AttachmentOption.CameraPhoto },
             contentAlignment = Alignment.Center
           ) {
-            Icon(VibeIcons.Camera, "Camera", Modifier.size(40.dp), tint = VibeColors.onVariant())
+            Icon(VibeIcons.Camera, vt("Camera"), Modifier.size(40.dp), tint = VibeColors.onVariant())
           }
         }
         itemsIndexed(gallery.items, key = { _, it -> it.id }) { _, m ->
@@ -148,10 +148,10 @@ private fun Sheet(attachmentOption: MutableState<AttachmentOption?>, composeStat
             Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(30.dp)).clip(RoundedCornerShape(30.dp)).background(VibeColors.high()).padding(horizontal = 6.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround
           ) {
-            Action(VibeIcons.PhotoLibrary, "Photos", active = true) { close(); attachmentOption.value = AttachmentOption.GalleryImage }
-            Action(VibeIcons.Videocam, "Videos") { close(); attachmentOption.value = AttachmentOption.GalleryVideo }
-            Action(VibeIcons.AttachFile, "Files") { close(); attachmentOption.value = AttachmentOption.File }
-            Action(VibeIcons.QrCode, "Address") {
+            Action(VibeIcons.PhotoLibrary, vt("Photos"), active = true) { close(); attachmentOption.value = AttachmentOption.GalleryImage }
+            Action(VibeIcons.Videocam, vt("Videos")) { close(); attachmentOption.value = AttachmentOption.GalleryVideo }
+            Action(VibeIcons.AttachFile, vt("Files")) { close(); attachmentOption.value = AttachmentOption.File }
+            Action(VibeIcons.QrCode, vt("Address")) {
               close()
               chatModel.sharedContent.value = SharedContent.MyAddress
             }

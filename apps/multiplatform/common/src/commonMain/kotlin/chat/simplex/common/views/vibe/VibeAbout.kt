@@ -75,13 +75,13 @@ fun VibeUpdateSheet(r: VibeRelease, close: () -> Unit) {
       }
       Spacer(Modifier.width(14.dp))
       Column(Modifier.weight(1f)) {
-        Text("Update available", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+        Text(vt("Update available"), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
         Text("Vibe X ${r.label}${mb(r.size)}", color = muted)
       }
     }
     if (r.notes.isNotEmpty()) {
       Spacer(Modifier.height(18.dp))
-      Text("WHAT'S NEW", fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp, color = muted)
+      Text(vt("WHAT'S NEW"), fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp, color = muted)
       Spacer(Modifier.height(8.dp))
       for (line in r.notes) Text(line, Modifier.padding(vertical = 4.dp), fontSize = 15.sp, lineHeight = 20.sp, color = VibeColors.onSurface())
     }
@@ -90,22 +90,22 @@ fun VibeUpdateSheet(r: VibeRelease, close: () -> Unit) {
       Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         when (s) {
           VibeUpdater.Stage.Info -> {
-            BlurpleButton("Update now", VibeIcons.SystemUpdateAlt) { VibeHaptics.medium(); VibeUpdater.startDownload(r) }
+            BlurpleButton(vt("Update now"), VibeIcons.SystemUpdateAlt) { VibeHaptics.medium(); VibeUpdater.startDownload(r) }
             Spacer(Modifier.height(4.dp))
-            TextAction("Later") { VibeUpdater.later(r); close() }
+            TextAction(vt("Later")) { VibeUpdater.later(r); close() }
           }
           VibeUpdater.Stage.Downloading -> {
             val p = VibeUpdater.progress.value
             if (p == null) LinearProgressIndicator(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(99.dp)), color = VibeColors.blurple, backgroundColor = VibeColors.blurple.copy(alpha = 0.2f))
             else LinearProgressIndicator(p, Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(99.dp)), color = VibeColors.blurple, backgroundColor = VibeColors.blurple.copy(alpha = 0.2f))
             Spacer(Modifier.height(10.dp))
-            Text(if (p == null) "Starting download…" else "Downloading… ${(p * 100).toInt()}%", color = VibeColors.onSurface())
+            Text(if (p == null) vt("Starting download…") else "Downloading… ${(p * 100).toInt()}%", color = VibeColors.onSurface())
             Spacer(Modifier.height(4.dp))
-            TextAction("Cancel") { VibeUpdater.cancel(); close() }
+            TextAction(vt("Cancel")) { VibeUpdater.cancel(); close() }
           }
           VibeUpdater.Stage.NeedsPermission -> {
             Text(
-              "Android needs your OK once: allow Vibe X to install updates, then come back and tap Install.",
+              vt("Android needs your OK once: allow Vibe X to install updates, then come back and tap Install."),
               textAlign = TextAlign.Center, color = muted
             )
             Spacer(Modifier.height(12.dp))
@@ -116,13 +116,13 @@ fun VibeUpdateSheet(r: VibeRelease, close: () -> Unit) {
           VibeUpdater.Stage.Installing -> {
             Text("Tap \"Update\" in the Android installer. Your chats stay.", textAlign = TextAlign.Center, color = muted)
             Spacer(Modifier.height(8.dp))
-            TextAction("Installer didn't open? Try again") { VibeUpdater.install() }
+            TextAction(vt("Installer didn't open? Try again")) { VibeUpdater.install() }
           }
           VibeUpdater.Stage.Failed -> {
-            Text(VibeUpdater.error.value ?: "Something went wrong.", textAlign = TextAlign.Center, color = VibeColors.red)
+            Text(VibeUpdater.error.value ?: vt("Something went wrong."), textAlign = TextAlign.Center, color = VibeColors.red)
             Spacer(Modifier.height(10.dp))
-            BlurpleButton("Try again", null) { VibeUpdater.startDownload(r) }
-            TextAction("Download in browser instead") { uri.openUriCatching(r.apkUrl); close() }
+            BlurpleButton(vt("Try again"), null) { VibeUpdater.startDownload(r) }
+            TextAction(vt("Download in browser instead")) { uri.openUriCatching(r.apkUrl); close() }
           }
         }
       }
@@ -183,7 +183,7 @@ fun VibeUpdatesView() {
         VibeUpdater.refresh()
       } catch (e: Throwable) {
         if (e is kotlinx.coroutines.CancellationException) throw e
-        error = "Could not reach GitHub. Are you online?"
+        error = vt("Could not reach GitHub. Are you online?")
       }
     }
   }
@@ -198,14 +198,14 @@ fun VibeUpdatesView() {
   val last = VibeUpdater.lastChecked.value
   val muted = VibeColors.onVariant()
   val (icon, color, title, sub) = when {
-    r != null -> Quad(VibeIcons.SystemUpdate, VibeColors.red, "Update available", "Vibe X ${r.label}${mb(r.size)}")
-    busy -> Quad(VibeIcons.Sync, VibeColors.blurple, "Checking for updates…", "Asking GitHub for the latest release")
-    error != null -> Quad(VibeIcons.CloudOff, VibeColors.red, "Could not check", error!!)
-    last != null -> Quad(VibeIcons.CheckCircle, VibeColors.green, "You're up to date", "This is the newest Vibe X")
-    else -> Quad(VibeIcons.HelpOutline, muted, "Not checked yet", "Tap Check for updates")
+    r != null -> Quad(VibeIcons.SystemUpdate, VibeColors.red, vt("Update available"), "Vibe X ${r.label}${mb(r.size)}")
+    busy -> Quad(VibeIcons.Sync, VibeColors.blurple, vt("Checking for updates…"), vt("Asking GitHub for the latest release"))
+    error != null -> Quad(VibeIcons.CloudOff, VibeColors.red, vt("Could not check"), error!!)
+    last != null -> Quad(VibeIcons.CheckCircle, VibeColors.green, vt("You're up to date"), vt("This is the newest Vibe X"))
+    else -> Quad(VibeIcons.HelpOutline, muted, vt("Not checked yet"), vt("Tap Check for updates"))
   }
   ColumnWithScrollBar {
-    Text("Updates", Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp), fontSize = 28.sp, color = VibeColors.onSurface())
+    Text(vt("Updates"), Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp), fontSize = 28.sp, color = VibeColors.onSurface())
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(vibeCard()).padding(18.dp)) {
       Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(color.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
@@ -222,16 +222,16 @@ fun VibeUpdatesView() {
       Spacer(Modifier.height(16.dp))
       Box(Modifier.fillMaxWidth().height(1.dp).background(VibeColors.divider()))
       Spacer(Modifier.height(12.dp))
-      InfoRow("Installed version", VibeUpdater.versionLabel)
-      if (r != null) InfoRow("New version", r.label)
-      InfoRow("Last checked", if (last == null) "Never" else ago(last))
+      InfoRow(vt("Installed version"), VibeUpdater.versionLabel)
+      if (r != null) InfoRow(vt("New version"), r.label)
+      InfoRow(vt("Last checked"), if (last == null) vt("Never") else ago(last))
       Spacer(Modifier.height(14.dp))
       if (!vibeCanSelfUpdate) {
-        OutlineButton("Open releases on GitHub", VibeIcons.OpenInNew) { uri.openUriCatching(VibeUpdater.RELEASES_URL) }
+        OutlineButton(vt("Open releases on GitHub"), VibeIcons.OpenInNew) { uri.openUriCatching(VibeUpdater.RELEASES_URL) }
       } else if (r != null) {
-        BlurpleButton("Update now", VibeIcons.SystemUpdateAlt) { VibeUpdater.showSheet(r) }
+        BlurpleButton(vt("Update now"), VibeIcons.SystemUpdateAlt) { VibeUpdater.showSheet(r) }
       } else {
-        OutlineButton("Check for updates", VibeIcons.Refresh, enabled = !busy) { VibeHaptics.light(); refresh() }
+        OutlineButton(vt("Check for updates"), VibeIcons.Refresh, enabled = !busy) { VibeHaptics.light(); refresh() }
       }
     }
     val shown = r ?: VibeUpdater.latest.value?.takeIf { it.build == VibeUpdater.build }
@@ -254,7 +254,7 @@ fun VibeUpdatesView() {
     ) {
       Icon(VibeIcons.OpenInNew, null, Modifier.size(18.dp), tint = VibeColors.blurple)
       Spacer(Modifier.width(8.dp))
-      Text("All releases on GitHub", color = VibeColors.blurple, fontWeight = FontWeight.SemiBold)
+      Text(vt("All releases on GitHub"), color = VibeColors.blurple, fontWeight = FontWeight.SemiBold)
     }
     Spacer(Modifier.height(32.dp))
   }
@@ -288,7 +288,7 @@ fun VibeAboutView() {
       try {
         val r = VibeUpdater.refresh()
         if (r == null) {
-          status = "You're on the latest version"
+          status = vt("You're on the latest version")
           VibeHaptics.success()
         } else {
           status = "Vibe X ${r.label} is available"
@@ -296,7 +296,7 @@ fun VibeAboutView() {
         }
       } catch (e: Throwable) {
         if (e is kotlinx.coroutines.CancellationException) throw e
-        status = "No connection to GitHub"
+        status = vt("No connection to GitHub")
       } finally {
         checking = false
       }
@@ -308,7 +308,7 @@ fun VibeAboutView() {
     Spacer(Modifier.height(14.dp))
     Text("Vibe X", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = VibeColors.onSurface())
     Spacer(Modifier.height(2.dp))
-    Text("A private messenger built on SimpleX", fontSize = 15.sp, color = muted, textAlign = TextAlign.Center)
+    Text(vt("A private messenger built on SimpleX"), fontSize = 15.sp, color = muted, textAlign = TextAlign.Center)
     Spacer(Modifier.height(12.dp))
     Text(
       "Version ${VibeUpdater.versionLabel}  ·  SimpleX",
@@ -320,18 +320,18 @@ fun VibeAboutView() {
     Column(Modifier.padding(horizontal = 20.dp).fillMaxWidth()) {
       if (vibeCanSelfUpdate) {
         Spacer(Modifier.height(10.dp))
-        BlurpleButton("Check for updates", null) { VibeHaptics.light(); check() }
+        BlurpleButton(vt("Check for updates"), null) { VibeHaptics.light(); check() }
       }
       Spacer(Modifier.height(10.dp))
-      OutlineButton("Updates") { ModalManager.start.showModal(settings = true) { VibeUpdatesView() } }
+      OutlineButton(vt("Updates")) { ModalManager.start.showModal(settings = true) { VibeUpdatesView() } }
       Spacer(Modifier.height(10.dp))
-      OutlineButton("Source code on GitHub") { uri.openUriCatching(SOURCE) }
+      OutlineButton(vt("Source code on GitHub")) { uri.openUriCatching(SOURCE) }
       Spacer(Modifier.height(10.dp))
-      OutlineButton("Credits") { VibeCredits.show() }
+      OutlineButton(vt("Credits")) { VibeCredits.show() }
       Spacer(Modifier.height(10.dp))
       OutlineButton("❤  Support Vibe X") { VibeSupport.open() }
       Spacer(Modifier.height(10.dp))
-      OutlineButton("How Vibe X keeps you safe") {
+      OutlineButton(vt("How Vibe X keeps you safe")) {
         ModalManager.fullscreen.showCustomModal { close -> VibeWelcome(chatModel, onDone = close) }
       }
       Spacer(Modifier.height(16.dp))
@@ -372,7 +372,7 @@ object VibeCredits {
   private fun Content() {
     val muted = VibeColors.onVariant()
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 20.dp).navigationBarsPadding()) {
-      Text("Credits", Modifier.padding(horizontal = 4.dp), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = VibeColors.onSurface())
+      Text(vt("Credits"), Modifier.padding(horizontal = 4.dp), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = VibeColors.onSurface())
       Text("The people and projects behind Vibe X", Modifier.padding(start = 4.dp, end = 4.dp, top = 2.dp), fontSize = 15.sp, color = muted)
       Section("MADE BY", madeBy)
       Section("TEAM", team)
@@ -415,7 +415,7 @@ fun VibeWhatsNewSheet(label: String, notes: List<String>, close: () -> Unit) {
       Image(painterResource(MR.images.vibe_logo), null, Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
       Spacer(Modifier.width(14.dp))
       Column {
-        Text("What's new in Vibe X", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+        Text(vt("What's new in Vibe X"), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
         Text("You're now on $label", color = VibeColors.onVariant())
       }
     }
@@ -428,6 +428,6 @@ fun VibeWhatsNewSheet(label: String, notes: List<String>, close: () -> Unit) {
       }
     }
     Spacer(Modifier.height(18.dp))
-    BlurpleButton("Got it", null) { close() }
+    BlurpleButton(vt("Got it"), null) { close() }
   }
 }

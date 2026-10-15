@@ -100,7 +100,7 @@ private fun Menu(a: VibeMsgActions, close: () -> Unit) {
       Spacer(Modifier.width(14.dp))
       Column(Modifier.weight(1f)) {
         Text(name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = VibeColors.onSurface())
-        Text(VibeEffect.strip(item.text).ifBlank { "Attachment" }, fontSize = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = VibeColors.onSurface())
+        Text(VibeEffect.strip(item.text).ifBlank { vt("Attachment") }, fontSize = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = VibeColors.onSurface())
       }
       Spacer(Modifier.width(8.dp))
       Text(vibeTime(item.meta.itemTs), fontSize = 12.sp, color = VibeColors.onVariant())
@@ -121,20 +121,20 @@ private fun Menu(a: VibeMsgActions, close: () -> Unit) {
         }
       }
     }
-    a.reply?.let { row(VibeIcons.Reply, null, "Reply", it) }
-    a.edit?.let { row(null, painterResource(MR.images.ic_edit), "Edit", it, color = VibeColors.blurple) }
-    a.forward?.let { row(null, painterResource(MR.images.ic_forward), "Forward", it) }
-    a.copy?.let { row(null, painterResource(MR.images.ic_content_copy), "Copy Text", it) }
-    a.share?.let { row(null, painterResource(MR.images.ic_share), "Share", it) }
-    a.download?.let { row(null, painterResource(MR.images.ic_arrow_downward), "Download", it) }
+    a.reply?.let { row(VibeIcons.Reply, null, vt("Reply"), it) }
+    a.edit?.let { row(null, painterResource(MR.images.ic_edit), vt("Edit"), it, color = VibeColors.blurple) }
+    a.forward?.let { row(null, painterResource(MR.images.ic_forward), vt("Forward"), it) }
+    a.copy?.let { row(null, painterResource(MR.images.ic_content_copy), vt("Copy Text"), it) }
+    a.share?.let { row(null, painterResource(MR.images.ic_share), vt("Share"), it) }
+    a.download?.let { row(null, painterResource(MR.images.ic_arrow_downward), vt("Download"), it) }
     val starred = VibeStarred.isStarred(a.chatInfo.id, item.id)
-    row(if (starred) VibeIcons.Bookmark else VibeIcons.BookmarkBorder, null, if (starred) "Remove Bookmark" else "Bookmark Message", { VibeStarred.toggle(a.chatInfo, item) })
-    a.info?.let { row(null, painterResource(MR.images.ic_info), "Info", it) }
-    a.select?.let { row(null, painterResource(MR.images.ic_check_circle), "Select", it) }
+    row(if (starred) VibeIcons.Bookmark else VibeIcons.BookmarkBorder, null, if (starred) vt("Remove Bookmark") else vt("Bookmark Message"), { VibeStarred.toggle(a.chatInfo, item) })
+    a.info?.let { row(null, painterResource(MR.images.ic_info), vt("Info"), it) }
+    a.select?.let { row(null, painterResource(MR.images.ic_check_circle), vt("Select"), it) }
     Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(1.dp).background(VibeColors.divider()))
     a.moderate?.let { row(null, painterResource(MR.images.ic_flag), "Remove for everyone (moderator)", it, color = red) }
-    a.deleteForEveryone?.let { row(VibeIcons.Block, null, "Delete for Everyone", it, color = red) }
-    row(null, painterResource(MR.images.ic_delete), "Delete for me", a.deleteForMe, color = red, subtitle = "Other people still see it.")
+    a.deleteForEveryone?.let { row(VibeIcons.Block, null, vt("Delete for Everyone"), it, color = red) }
+    row(null, painterResource(MR.images.ic_delete), vt("Delete for me"), a.deleteForMe, color = red, subtitle = "Other people still see it.")
     Spacer(Modifier.height(8.dp))
   }
 }
@@ -144,8 +144,8 @@ fun vibeSender(chatInfo: ChatInfo, item: ChatItem): Pair<String, String?> {
   val user = chatModel.currentUser.value
   return when (val d = item.chatDir) {
     is CIDirection.GroupRcv -> d.groupMember.displayName to d.groupMember.image
-    is CIDirection.GroupSnd -> if (chatInfo is ChatInfo.Group) chatInfo.groupInfo.membership.displayName to chatInfo.groupInfo.membership.image else (user?.displayName ?: "You") to user?.image
+    is CIDirection.GroupSnd -> if (chatInfo is ChatInfo.Group) chatInfo.groupInfo.membership.displayName to chatInfo.groupInfo.membership.image else (user?.displayName ?: vt("You")) to user?.image
     is CIDirection.ChannelRcv -> chatInfo.displayName to chatInfo.image
-    else -> if (d.sent) (user?.displayName ?: "You") to user?.image else chatInfo.displayName to chatInfo.image
+    else -> if (d.sent) (user?.displayName ?: vt("You")) to user?.image else chatInfo.displayName to chatInfo.image
   }
 }

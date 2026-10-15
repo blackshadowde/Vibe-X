@@ -60,7 +60,7 @@ object VibeProfileSheet {
         status = c.profile.shortDescr?.ifBlank { null },
         timeZone = VibeStatus.timeZoneOf(c.profile.description),
         since = c.createdAt,
-        sinceLabel = "Connected since",
+        sinceLabel = vt("Connected since"),
         close = close,
         message = { close(); openVibeChatById(chat) },
         call = if (c.ready) ({ close(); startChatCall(chat.remoteHostId, info, CallMediaType.Audio) }) else null,
@@ -116,7 +116,7 @@ private fun BleedHeader(name: String, image: String?, height: Dp, onBack: () -> 
       Modifier.padding(start = 12.dp, top = 14.dp).size(38.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.38f)).clickable(onClick = onBack),
       contentAlignment = Alignment.Center
     ) {
-      Icon(VibeIcons.ArrowBack, "Back", Modifier.size(22.dp), tint = Color.White)
+      Icon(VibeIcons.ArrowBack, vt("Back"), Modifier.size(22.dp), tint = Color.White)
     }
   }
 }
@@ -156,7 +156,7 @@ private fun PersonSheet(
       if (fullName != null) Text(fullName, fontSize = 15.sp, color = muted)
       if (subtitle != null) {
         Row(
-          Modifier.padding(top = 2.dp).clickable { clipboard.setText(AnnotatedString(subtitle)); showToast("Copied") },
+          Modifier.padding(top = 2.dp).clickable { clipboard.setText(AnnotatedString(subtitle)); showToast(vt("Copied")) },
           verticalAlignment = Alignment.CenterVertically
         ) {
           Text(subtitle, fontSize = 14.5.sp, color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, false))
@@ -172,7 +172,7 @@ private fun PersonSheet(
         ) {
           Icon(VibeIcons.Chat, null, Modifier.size(18.dp), tint = Color.White)
           Spacer(Modifier.width(8.dp))
-          Text("Message", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+          Text(vt("Message"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
         }
         if (call != null) {
           Spacer(Modifier.width(8.dp))
@@ -193,7 +193,7 @@ private fun PersonSheet(
         }
       }
       if (about != null) {
-        Text("About me", label, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = muted)
+        Text(vt("About me"), label, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = muted)
         Text(about, fontSize = 15.sp, color = VibeColors.onSurface())
       }
       if (since != null) {
@@ -212,8 +212,8 @@ private fun PersonSheet(
         Icon(VibeIcons.Lock, null, Modifier.size(20.dp), tint = VibeColors.onSurface())
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-          Text("Security and more", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = VibeColors.onSurface())
-          Text("Verify, alias, disappearing messages, servers", fontSize = 12.5.sp, color = muted)
+          Text(vt("Security and more"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = VibeColors.onSurface())
+          Text(vt("Verify, alias, disappearing messages, servers"), fontSize = 12.5.sp, color = muted)
         }
       }
       Spacer(Modifier.navigationBarsPadding().height(24.dp))
@@ -282,7 +282,7 @@ private fun OwnSheet(close: () -> Unit) {
       if (user.fullName.isNotBlank() && user.fullName != user.displayName) Text(user.fullName, fontSize = 15.sp, color = muted)
       if (address != null) {
         Row(
-          Modifier.padding(top = 2.dp).clickable { clipboard.setText(AnnotatedString(address)); showToast("Copied your address") },
+          Modifier.padding(top = 2.dp).clickable { clipboard.setText(AnnotatedString(address)); showToast(vt("Copied your address")) },
           verticalAlignment = Alignment.CenterVertically
         ) {
           Text(address, fontSize = 14.5.sp, color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, false))
@@ -297,7 +297,7 @@ private fun OwnSheet(close: () -> Unit) {
       ) {
         Icon(VibeIcons.Edit, null, Modifier.size(18.dp), tint = Color.White)
         Spacer(Modifier.width(8.dp))
-        Text("Edit profile", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+        Text(vt("Edit profile"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
       }
       Spacer(Modifier.height(14.dp))
       Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
@@ -308,8 +308,8 @@ private fun OwnSheet(close: () -> Unit) {
           Icon(VibeIcons.Mood, null, Modifier.size(22.dp), tint = VibeColors.onSurface())
           Spacer(Modifier.width(16.dp))
           Column {
-            Text(user.profile.shortDescr?.ifBlank { null } ?: "Set a status", fontSize = 16.sp, color = VibeColors.onSurface(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("What you're up to, and your local time", fontSize = 13.sp, color = muted)
+            Text(user.profile.shortDescr?.ifBlank { null } ?: vt("Set a status"), fontSize = 16.sp, color = VibeColors.onSurface(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(vt("What you're up to, and your local time"), fontSize = 13.sp, color = muted)
           }
         }
         Row(
@@ -322,8 +322,8 @@ private fun OwnSheet(close: () -> Unit) {
           Icon(VibeIcons.QrCode, null, Modifier.size(22.dp), tint = VibeColors.onSurface())
           Spacer(Modifier.width(16.dp))
           Column {
-            Text(if (address != null) "Your Vibe X address" else "Create your Vibe X address", fontSize = 16.sp, color = VibeColors.onSurface())
-            Text("Share it so people can reach you", fontSize = 13.sp, color = muted)
+            Text(if (address != null) vt("Your Vibe X address") else vt("Create your Vibe X address"), fontSize = 16.sp, color = VibeColors.onSurface())
+            Text(vt("Share it so people can reach you"), fontSize = 13.sp, color = muted)
           }
         }
       }

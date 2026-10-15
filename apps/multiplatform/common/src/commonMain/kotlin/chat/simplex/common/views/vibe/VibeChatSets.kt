@@ -69,7 +69,7 @@ object VibeChatSets {
   /** Locking (and unlocking) asks for your screen lock first. */
   fun toggleLock(chat: Chat) {
     val on = !isLocked(chat.id)
-    unlock(if (on) "Lock this chat" else "Unlock this chat") {
+    unlock(if (on) vt("Lock this chat") else vt("Unlock this chat")) {
       setLocked(chat.id, on)
       if (on && chatModel.chatId.value == chat.id) chatModel.chatId.value = null
       if (on && VibeRail.selected.value == chat.id) VibeRail.selected.value = null
@@ -79,11 +79,11 @@ object VibeChatSets {
   }
 
   private fun unlock(title: String, then: () -> Unit) {
-    authenticate(title, "Use your fingerprint, face or phone PIN", oneTime = true) { r ->
+    authenticate(title, vt("Use your fingerprint, face or phone PIN"), oneTime = true) { r ->
       when (r) {
         is LAResult.Success -> then()
         is LAResult.Unavailable -> AlertManager.shared.showAlertMsg(
-          "Set a screen lock first",
+          vt("Set a screen lock first"),
           "Locked chats open with your phone's fingerprint, face or PIN (or Vibe X's own lock in Privacy). Set one up, then try again."
         )
         else -> {}
@@ -92,12 +92,12 @@ object VibeChatSets {
   }
 
   fun showArchived() {
-    VibeSheets.show(background = { vibePage() }) { close -> ListSheet("Archived chats", "Hidden from your list. Long-press one to unarchive it.", { archivedChats() }, close) }
+    VibeSheets.show(background = { vibePage() }) { close -> ListSheet(vt("Archived chats"), vt("Hidden from your list. Long-press one to unarchive it."), { archivedChats() }, close) }
   }
 
   fun showLocked() {
-    unlock("Open locked chats") {
-      VibeSheets.show(background = { vibePage() }) { close -> ListSheet("Locked chats", "Only you can open these. Long-press one to unlock it.", { lockedChats() }, close) }
+    unlock(vt("Open locked chats")) {
+      VibeSheets.show(background = { vibePage() }) { close -> ListSheet(vt("Locked chats"), vt("Only you can open these. Long-press one to unlock it."), { lockedChats() }, close) }
     }
   }
 
@@ -107,9 +107,9 @@ object VibeChatSets {
     VibeSheets.show(background = { vibePage() }) { close ->
       Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 16.dp)) {
         Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
-          Row(VibeIcons.Archive, "Archived chats", archivedChats().size.takeIf { it > 0 }?.toString()) { close(); showArchived() }
-          Row(VibeIcons.Lock, "Locked chats", null) { close(); showLocked() }
-          Row(VibeIcons.Folder, "Folders", chatModel.userTags.value.size.takeIf { it > 0 }?.toString()) {
+          Row(VibeIcons.Archive, vt("Archived chats"), archivedChats().size.takeIf { it > 0 }?.toString()) { close(); showArchived() }
+          Row(VibeIcons.Lock, vt("Locked chats"), null) { close(); showLocked() }
+          Row(VibeIcons.Folder, vt("Folders"), chatModel.userTags.value.size.takeIf { it > 0 }?.toString()) {
             close()
             val rh = chatModel.remoteHostId()
             ModalManager.start.showModalCloseable { c ->
@@ -117,7 +117,7 @@ object VibeChatSets {
               else TagListView(rhId = rh, close = c, reorderMode = true)
             }
           }
-          Row(VibeIcons.Groups, "Switch profile", null) { close(); userPickerState.value = AnimatedViewState.VISIBLE }
+          Row(VibeIcons.Groups, vt("Switch profile"), null) { close(); userPickerState.value = AnimatedViewState.VISIBLE }
         }
       }
     }
@@ -144,7 +144,7 @@ object VibeChatSets {
       Text(title, Modifier.padding(start = 20.dp), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
       Text(hint, Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 10.dp), fontSize = 13.sp, color = VibeColors.onVariant())
       if (list.isEmpty()) {
-        Text("Nothing here yet.", Modifier.padding(20.dp), color = VibeColors.onVariant())
+        Text(vt("Nothing here yet."), Modifier.padding(20.dp), color = VibeColors.onVariant())
       }
       LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
         items(list, key = { it.id }) { chat ->

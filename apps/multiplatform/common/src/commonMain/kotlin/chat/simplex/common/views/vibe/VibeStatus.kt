@@ -74,7 +74,7 @@ object VibeStatus {
   }
 
   private val presets = listOf("☕ Taking a break", "💼 At work", "📚 Studying", "🎮 Gaming", "🌙 Sleeping", "🚗 Driving", "🏋️ At the gym", "📵 Busy")
-  private val clearAfter = listOf("Don't clear" to 0L, "1 hour" to 60 * 60_000L, "4 hours" to 4 * 60 * 60_000L, "Today" to -1L, "This week" to 7 * 24 * 60 * 60_000L)
+  private val clearAfter = listOf(vt("Don't clear") to 0L, "1 hour" to 60 * 60_000L, "4 hours" to 4 * 60 * 60_000L, vt("Today") to -1L, vt("This week") to 7 * 24 * 60 * 60_000L)
 
   fun showEditor() {
     VibeSheets.show(background = { vibePage() }) { close -> Editor(close) }
@@ -89,7 +89,7 @@ object VibeStatus {
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
-      Text("Set a status", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+      Text(vt("Set a status"), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
       Spacer(Modifier.height(12.dp))
       // the thought bubble
       Row(
@@ -99,7 +99,7 @@ object VibeStatus {
         Text("💭", fontSize = 20.sp)
         Spacer(Modifier.width(10.dp))
         Box(Modifier.weight(1f)) {
-          if (text.isEmpty()) Text("What's happening?", color = VibeColors.onVariant(), fontSize = 16.sp)
+          if (text.isEmpty()) Text(vt("What's happening?"), color = VibeColors.onVariant(), fontSize = 16.sp)
           BasicTextField(
             text, { if (it.length <= 100) text = it }, singleLine = true,
             textStyle = TextStyle(fontSize = 16.sp, color = VibeColors.onSurface()),
@@ -116,13 +116,13 @@ object VibeStatus {
       Row(Modifier.horizontalScroll(rememberScrollState())) {
         for (p in presets) Chip(p, text == p) { text = p }
       }
-      Text("Clear after", Modifier.padding(top = 14.dp, bottom = 6.dp), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = VibeColors.onVariant())
+      Text(vt("Clear after"), Modifier.padding(top = 14.dp, bottom = 6.dp), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = VibeColors.onVariant())
       Row(Modifier.horizontalScroll(rememberScrollState())) {
         for ((label, ms) in clearAfter) Chip(label, clear == ms) { clear = ms }
       }
       Row(Modifier.fillMaxWidth().padding(top = 10.dp).clickable { share = !share }, verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-          Text("Show my local time", fontSize = 16.sp, color = VibeColors.onSurface())
+          Text(vt("Show my local time"), fontSize = 16.sp, color = VibeColors.onSurface())
           Text("People see what time it is for you (${java.util.TimeZone.getDefault().id})", fontSize = 13.sp, color = VibeColors.onVariant())
         }
         Switch(share, { share = it }, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = VibeColors.blurple, checkedTrackAlpha = 1f))
@@ -142,7 +142,7 @@ object VibeStatus {
               }
               appPreferences.vibeStatusClearAt.set(until)
               VibeHaptics.success()
-              showToast(if (text.isBlank()) "Status cleared" else "Status set")
+              showToast(if (text.isBlank()) vt("Status cleared") else vt("Status set"))
               close()
             }
           }
@@ -150,7 +150,7 @@ object VibeStatus {
         contentAlignment = Alignment.Center
       ) {
         if (busy) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
-        else Text("Save", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        else Text(vt("Save"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
       }
     }
   }
@@ -205,7 +205,7 @@ object VibeDirectory {
     var q by remember { mutableStateOf("") }
     val dir = chat()
     Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
-      Text("Find public groups", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+      Text(vt("Find public groups"), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
       Text(
         "SimpleX's directory lists public groups. Search it, and it answers with groups you can join.",
         Modifier.padding(top = 4.dp, bottom = 14.dp), fontSize = 14.sp, color = VibeColors.onVariant()
@@ -217,7 +217,7 @@ object VibeDirectory {
             scope.launch { planAndConnect(chatModel.remoteHostId(), LINK, close = null) }
           },
           contentAlignment = Alignment.Center
-        ) { Text("Connect to the directory", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        ) { Text(vt("Connect to the directory"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         Text("It takes a moment the first time. Then come back here to search.", Modifier.padding(top = 8.dp), fontSize = 13.sp, color = VibeColors.onVariant())
       } else {
         Row(
@@ -246,7 +246,7 @@ object VibeDirectory {
             }
           },
           contentAlignment = Alignment.Center
-        ) { Text(if (q.isBlank()) "Open the directory" else "Search", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        ) { Text(if (q.isBlank()) vt("Open the directory") else vt("Search"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
       }
     }
   }

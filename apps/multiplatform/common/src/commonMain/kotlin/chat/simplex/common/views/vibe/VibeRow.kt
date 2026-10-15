@@ -72,9 +72,9 @@ private fun senderName(chatInfo: ChatInfo, item: ChatItem): Pair<String, String?
   val user = chatModel.currentUser.value
   return when (val d = item.chatDir) {
     is CIDirection.GroupRcv -> d.groupMember.displayName to d.groupMember.image
-    is CIDirection.GroupSnd -> if (chatInfo is ChatInfo.Group) chatInfo.groupInfo.membership.displayName to chatInfo.groupInfo.membership.image else (user?.displayName ?: "You") to user?.image
+    is CIDirection.GroupSnd -> if (chatInfo is ChatInfo.Group) chatInfo.groupInfo.membership.displayName to chatInfo.groupInfo.membership.image else (user?.displayName ?: vt("You")) to user?.image
     is CIDirection.ChannelRcv -> chatInfo.displayName to chatInfo.image
-    else -> if (item.chatDir.sent) (user?.displayName ?: "You") to user?.image else chatInfo.displayName to chatInfo.image
+    else -> if (item.chatDir.sent) (user?.displayName ?: vt("You")) to user?.image else chatInfo.displayName to chatInfo.image
   }
 }
 

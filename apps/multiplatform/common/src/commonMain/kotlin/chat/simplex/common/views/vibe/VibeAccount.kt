@@ -85,7 +85,7 @@ object VibeAccount {
           prefs.chatStopped.set(false)
           prefs.onboardingStage.set(OnboardingStage.Step1_SimpleXInfo)
           VibeHaptics.success()
-          showToast("Logged out. Your backup is saved.")
+          showToast(vt("Logged out. Your backup is saved."))
           vibeRestartApp()
         } catch (e: Throwable) {
           busy = false
@@ -99,7 +99,7 @@ object VibeAccount {
     ) {
       Text("👋", fontSize = 40.sp)
       Spacer(Modifier.height(8.dp))
-      Text("Log out of Vibe X", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
+      Text(vt("Log out of Vibe X"), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())
       Spacer(Modifier.height(8.dp))
       Text(
         "Your chats live only on this phone. Logging out saves them as one encrypted backup file, then clears Vibe X. " +
@@ -109,22 +109,22 @@ object VibeAccount {
       Spacer(Modifier.height(12.dp))
       Text(
         "Keep the file and passphrase safe: without them your chats can't be recovered. " +
-            "Only log in with your newest backup, and don't use it on two phones at once.",
+            vt("Only log in with your newest backup, and don't use it on two phones at once."),
         textAlign = TextAlign.Center, fontSize = 13.sp, lineHeight = 18.sp, color = VibeColors.red
       )
       Spacer(Modifier.height(20.dp))
       when {
         busy -> CircularProgressIndicator(Modifier.size(32.dp), color = VibeColors.blurple, strokeWidth = 3.dp)
         random.value -> {
-          Text("First, set a passphrase: it locks the backup and is what you log in with.", textAlign = TextAlign.Center, color = VibeColors.onSurface())
+          Text(vt("First, set a passphrase: it locks the backup and is what you log in with."), textAlign = TextAlign.Center, color = VibeColors.onSurface())
           Spacer(Modifier.height(12.dp))
-          Pill("Set passphrase", filled = true) {
+          Pill(vt("Set passphrase"), filled = true) {
             close()
             ModalManager.start.showModal { DatabaseEncryptionView(chatModel, false) }
           }
         }
         else -> {
-          Pill("Save backup & log out", filled = true) {
+          Pill(vt("Save backup & log out"), filled = true) {
             busy = true
             withLongRunningApi {
               try {
@@ -143,7 +143,7 @@ object VibeAccount {
         }
       }
       Spacer(Modifier.height(4.dp))
-      if (!busy) Pill("Cancel", filled = false) { close() }
+      if (!busy) Pill(vt("Cancel"), filled = false) { close() }
     }
   }
 
@@ -154,10 +154,10 @@ object VibeAccount {
     val pick = rememberFileChooserLauncher(true) { from: URI? ->
       if (from == null) return@rememberFileChooserLauncher
       AlertManager.shared.showAlertDialog(
-        title = "Log in with this backup?",
+        title = vt("Log in with this backup?"),
         text = "Vibe X opens with the chats in this file. Use your newest backup: an older one can break your conversations. " +
             "You'll be asked for its passphrase.",
-        confirmText = "Log in",
+        confirmText = vt("Log in"),
         onConfirm = {
           busy = true
           withLongRunningApi {
@@ -170,7 +170,7 @@ object VibeAccount {
               m.controller.appPrefs.chatStopped.set(false)
               m.controller.appPrefs.onboardingStage.set(OnboardingStage.OnboardingComplete)
               AlertManager.shared.hideAllAlerts()
-              showToast("Logged in. Opening your chats…")
+              showToast(vt("Logged in. Opening your chats…"))
               vibeRestartApp()
             }
           }
@@ -183,7 +183,7 @@ object VibeAccount {
       contentAlignment = Alignment.Center
     ) {
       if (busy) CircularProgressIndicator(Modifier.size(18.dp), color = VibeColors.blurple, strokeWidth = 2.dp)
-      else Text("Log in", color = Color(0xFFB9BFFF), fontWeight = FontWeight.SemiBold)
+      else Text(vt("Log in"), color = Color(0xFFB9BFFF), fontWeight = FontWeight.SemiBold)
     }
   }
 

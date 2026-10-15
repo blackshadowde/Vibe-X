@@ -194,7 +194,7 @@ object VibeUpdater {
         if (e is CancellationException) throw e
         Log.e(TAG, "Vibe update download failed: ${e.message}")
         stage.value = Stage.Failed
-        error.value = "The download failed. Check your connection and try again."
+        error.value = vt("The download failed. Check your connection and try again.")
       }
     }
   }
@@ -242,7 +242,7 @@ object VibeUpdater {
 
   private fun fetchNotes(tag: String): List<String>? {
     val c = open("https://api.github.com/repos/$REPO/releases/tags/$tag")
-    c.setRequestProperty("Accept", "application/vnd.github+json")
+    c.setRequestProperty(vt("Accept"), "application/vnd.github+json")
     try {
       if (c.responseCode == 404) return null
       if (c.responseCode != 200) throw Exception("GitHub answered ${c.responseCode}")
@@ -273,7 +273,7 @@ object VibeUpdater {
 
   private fun fetchLatest(): VibeRelease? {
     val c = open(API)
-    c.setRequestProperty("Accept", "application/vnd.github+json")
+    c.setRequestProperty(vt("Accept"), "application/vnd.github+json")
     val body = try {
       if (c.responseCode == 404) return null // no release yet
       if (c.responseCode != 200) throw Exception("GitHub answered ${c.responseCode}")

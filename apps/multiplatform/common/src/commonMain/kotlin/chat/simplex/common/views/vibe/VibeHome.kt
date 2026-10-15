@@ -169,7 +169,7 @@ private fun VibeRailColumn(userPickerState: MutableStateFlow<AnimatedViewState>,
       }
       item {
         Box(Modifier.padding(vertical = 8.dp).size(48.dp).clip(CircleShape).background(VibeColors.high()).clickable { showNewChatSheet() }, contentAlignment = Alignment.Center) {
-          Icon(VibeIcons.Add, "New chat or group", tint = VibeColors.blurple, modifier = Modifier.size(24.dp))
+          Icon(VibeIcons.Add, vt("New chat or group"), tint = VibeColors.blurple, modifier = Modifier.size(24.dp))
         }
       }
     }
@@ -223,7 +223,7 @@ private fun VibeRailItem(chat: Chat) {
           .clip(CircleShape).background(VibeColors.red),
         contentAlignment = Alignment.Center
       ) {
-        Icon(VibeIcons.Call, "Missed call", Modifier.size(11.dp), tint = Color.White)
+        Icon(VibeIcons.Call, vt("Missed call"), Modifier.size(11.dp), tint = Color.White)
       }
     }
     if (unread > 0) {
@@ -313,7 +313,7 @@ private fun VibeSearchField(value: String, onChange: (String) -> Unit, onClick: 
     Icon(VibeIcons.Search, null, Modifier.size(22.dp), tint = VibeColors.onVariant())
     Spacer(Modifier.width(10.dp))
     Box(Modifier.weight(1f)) {
-      if (value.isEmpty()) Text("Find or start a conversation", fontSize = 15.sp, color = VibeColors.onVariant(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+      if (value.isEmpty()) Text(vt("Find or start a conversation"), fontSize = 15.sp, color = VibeColors.onVariant(), maxLines = 1, overflow = TextOverflow.Ellipsis)
       if (onClick == null) {
         BasicTextField(
           value, onChange, singleLine = true,
@@ -362,13 +362,13 @@ private fun VibeDmPane(stopped: Boolean) {
       Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text((folder.chatTagEmoji?.let { "$it  " } ?: "") + folder.chatTagText, Modifier.weight(1f), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface(), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Box(Modifier.size(36.dp).clip(CircleShape).clickable { VibeRail.folder.value = null }, contentAlignment = Alignment.Center) {
-          Icon(VibeIcons.Close, "All chats", Modifier.size(20.dp), tint = VibeColors.onVariant())
+          Icon(VibeIcons.Close, vt("All chats"), Modifier.size(20.dp), tint = VibeColors.onVariant())
         }
       }
     }
     LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 110.dp)) {
       if (notes != null && q.isEmpty() && folder == null) {
-        item("notes") { NavTile(VibeIcons.Star, "Private notes", notes) }
+        item("notes") { NavTile(VibeIcons.Star, vt("Private notes"), notes) }
       }
       if (q.isEmpty() && folder == null) {
         item("public") {
@@ -378,7 +378,7 @@ private fun VibeDmPane(stopped: Boolean) {
           ) {
             Icon(VibeIcons.Public, null, Modifier.size(24.dp), tint = VibeColors.onVariant())
             Spacer(Modifier.width(16.dp))
-            Text("Find public groups", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = VibeColors.onSurface())
+            Text(vt("Find public groups"), fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = VibeColors.onSurface())
           }
         }
       }
@@ -479,8 +479,8 @@ private fun DmTile(chat: Chat) {
           val sub = when {
             pending -> "connecting…"
             status != null -> status
-            info is ChatInfo.Group -> if (info.groupInfo.useRelays) "Channel" else "Group"
-            else -> "Encrypted Direct Message"
+            info is ChatInfo.Group -> if (info.groupInfo.useRelays) vt("Channel") else vt("Group")
+            else -> vt("Encrypted Direct Message")
           }
           Text(sub, fontSize = 12.sp, color = VibeColors.onVariant(), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -507,13 +507,13 @@ private fun InviteTile(chat: Chat) {
     Spacer(Modifier.width(14.dp))
     Column(Modifier.weight(1f)) {
       Text(info.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold, color = VibeColors.onSurface())
-      Text("Wants to chat with you", fontSize = 12.sp, color = VibeColors.onVariant())
+      Text(vt("Wants to chat with you"), fontSize = 12.sp, color = VibeColors.onVariant())
     }
     Box(Modifier.size(40.dp).clip(CircleShape).clickable { rejectContactRequest(chat.remoteHostId, info.apiId, chatModel) }, contentAlignment = Alignment.Center) {
-      Icon(VibeIcons.Close, "Reject", tint = Color(0xFFFF5252))
+      Icon(VibeIcons.Close, vt("Reject"), tint = Color(0xFFFF5252))
     }
     Box(Modifier.size(40.dp).clip(CircleShape).clickable { acceptContactRequest(chat.remoteHostId, incognito = false, info.apiId, isCurrentUser = true, chatModel) }, contentAlignment = Alignment.Center) {
-      Icon(VibeIcons.Done, "Accept", tint = VibeColors.onSurface())
+      Icon(VibeIcons.Done, vt("Accept"), tint = VibeColors.onSurface())
     }
   }
 }
@@ -553,7 +553,7 @@ private fun VibeChatPane(chat: Chat) {
         color = VibeColors.onSurface(), maxLines = 1, overflow = TextOverflow.Ellipsis,
       )
       val sub = when {
-        info is ChatInfo.Group -> if (info.groupInfo.useRelays) "Channel" else "Group"
+        info is ChatInfo.Group -> if (info.groupInfo.useRelays) vt("Channel") else vt("Group")
         info is ChatInfo.Direct && !info.contact.ready -> "connecting…"
         info.fullName.isNotEmpty() && info.fullName != info.displayName -> info.fullName
         else -> null
@@ -562,7 +562,7 @@ private fun VibeChatPane(chat: Chat) {
       Spacer(Modifier.height(8.dp))
       VibeHashRow(
         label = "chat",
-        subtitle = "End-to-end encrypted",
+        subtitle = vt("End-to-end encrypted"),
         subtitleIcon = VibeIcons.Lock,
         unread = chat.chatStats.unreadCount,
         onClick = openChat,
@@ -571,17 +571,17 @@ private fun VibeChatPane(chat: Chat) {
         val missed = remember(chat.chatItems) { missedCalls(chat) }
         VibeHashRow(
           label = "audio-call", icon = VibeIcons.Call,
-          unread = missed.first, subtitle = if (missed.first > 0) "Missed call" else null,
+          unread = missed.first, subtitle = if (missed.first > 0) vt("Missed call") else null,
           onClick = { if (info.contact.ready) startChatCall(chat.remoteHostId, info, CallMediaType.Audio) },
         )
         VibeHashRow(
           label = "video-call", icon = VibeIcons.Videocam,
-          unread = missed.second, subtitle = if (missed.second > 0) "Missed video call" else null,
+          unread = missed.second, subtitle = if (missed.second > 0) vt("Missed video call") else null,
           onClick = { if (info.contact.ready) startChatCall(chat.remoteHostId, info, CallMediaType.Video) },
         )
       }
       VibePaneHeader("INFO")
-      VibeHashRow(label = "media", subtitle = "Photos and videos", onClick = { VibeChatContent.show(chat, VibeContentKind.Media) })
+      VibeHashRow(label = "media", subtitle = vt("Photos and videos"), onClick = { VibeChatContent.show(chat, VibeContentKind.Media) })
       VibeHashRow(label = "files", onClick = { VibeChatContent.show(chat, VibeContentKind.Files) })
       VibeHashRow(label = "links", onClick = { VibeChatContent.show(chat, VibeContentKind.Links) })
       VibeHashRow(label = "voice-messages", onClick = { VibeChatContent.show(chat, VibeContentKind.Voice) })
@@ -698,8 +698,8 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
     VibeSupport.maybeAsk()
   }
   val status = when (running) {
-    true -> user.profile.shortDescr?.takeIf { it.isNotBlank() } ?: "Online"
-    false -> "Chat is stopped"
+    true -> user.profile.shortDescr?.takeIf { it.isNotBlank() } ?: vt("Online")
+    false -> vt("Chat is stopped")
     null -> "Connecting…"
   }
   Box(
@@ -732,7 +732,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
         },
         contentAlignment = Alignment.Center
       ) {
-        VibeUpdateDot { Icon(VibeIcons.Settings, "Settings", tint = VibeColors.onVariant()) }
+        VibeUpdateDot { Icon(VibeIcons.Settings, vt("Settings"), tint = VibeColors.onVariant()) }
       }
     }
     Box(Modifier.align(Alignment.TopStart).clip(CircleShape).background(VibeColors.surface()).padding(3.dp)) {

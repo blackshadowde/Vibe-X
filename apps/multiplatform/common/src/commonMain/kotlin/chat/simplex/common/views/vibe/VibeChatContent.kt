@@ -32,10 +32,10 @@ import kotlinx.datetime.Instant
 
 /** What a chat's pane can list (Vibe's "# | media", "# | files" ...). */
 enum class VibeContentKind(val title: String, val empty: String) {
-  Media("media", "No photos or videos yet"),
-  Files("files", "No files yet"),
-  Links("links", "No links yet"),
-  Voice("voice-messages", "No voice messages yet"),
+  Media("media", vt("No photos or videos yet")),
+  Files("files", vt("No files yet")),
+  Links("links", vt("No links yet")),
+  Voice("voice-messages", vt("No voice messages yet")),
   Starred("starred-messages", "Nothing bookmarked yet. Long-press a message, then Bookmark Message."),
 }
 
@@ -99,7 +99,7 @@ private fun Sheet(chat: Chat, kind: VibeContentKind, close: () -> Unit) {
                   Spacer(Modifier.width(6.dp))
                   Text(vibeTime(Instant.fromEpochMilliseconds(s.ts)), fontSize = 12.sp, color = muted)
                 }
-                Text(s.text.ifBlank { "Attachment" }, fontSize = 14.sp, color = VibeColors.onSurface(), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(s.text.ifBlank { vt("Attachment") }, fontSize = 14.sp, color = VibeColors.onSurface(), maxLines = 2, overflow = TextOverflow.Ellipsis)
               }
             }
           }

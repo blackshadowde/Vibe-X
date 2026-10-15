@@ -112,20 +112,20 @@ fun SettingsLayout(
 
     if (chat.simplex.common.views.vibe.vibeStyle) {
       // Vibe X: its own updates and about, as in Vibe
-      SectionView("VIBE X") {
+      SectionView(chat.simplex.common.views.vibe.vt("VIBE X")) {
         val pending = chat.simplex.common.views.vibe.VibeUpdater.pending.value
         LaunchedEffect(Unit) { chat.simplex.common.views.vibe.VibeUpdater.load() }
-        SettingsActionItemWithContent(painterResource(MR.images.ic_bigtop_updates), "Updates", showSettingsModal { chat.simplex.common.views.vibe.VibeUpdatesView() }) {
+        SettingsActionItemWithContent(painterResource(MR.images.ic_bigtop_updates), chat.simplex.common.views.vibe.vt("Updates"), showSettingsModal { chat.simplex.common.views.vibe.VibeUpdatesView() }) {
           if (pending != null) {
             Text("New", color = chat.simplex.common.views.vibe.VibeColors.red, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
             Spacer(Modifier.width(6.dp))
             Box(Modifier.size(10.dp).clip(androidx.compose.foundation.shape.CircleShape).background(chat.simplex.common.views.vibe.VibeColors.red))
           }
         }
-        SettingsActionItem(painterResource(MR.images.ic_chat_bubble), "Chat", showSettingsModal { chat.simplex.common.views.vibe.VibeChatSettingsView() })
-        SettingsActionItem(painterResource(MR.images.ic_info), "About Vibe X", showSettingsModal { chat.simplex.common.views.vibe.VibeAboutView() })
-        SettingsActionItem(painterResource(MR.images.ic_logout), "Log out", { chat.simplex.common.views.vibe.VibeAccount.showLogOut() }, textColor = chat.simplex.common.views.vibe.VibeColors.red, iconColor = chat.simplex.common.views.vibe.VibeColors.red, disabled = stopped && chatModel.currentUser.value == null)
-        SettingsActionItem(painterResource(MR.images.ic_heart), "Support Vibe X", showSettingsModal { chat.simplex.common.views.vibe.VibeSupportView() }, textColor = chat.simplex.common.views.vibe.VibeColors.blurple, iconColor = chat.simplex.common.views.vibe.VibeColors.red)
+        SettingsActionItem(painterResource(MR.images.ic_chat_bubble), chat.simplex.common.views.vibe.vt("Chat"), showSettingsModal { chat.simplex.common.views.vibe.VibeChatSettingsView() })
+        SettingsActionItem(painterResource(MR.images.ic_info), chat.simplex.common.views.vibe.vt("About Vibe X"), showSettingsModal { chat.simplex.common.views.vibe.VibeAboutView() })
+        SettingsActionItem(painterResource(MR.images.ic_logout), chat.simplex.common.views.vibe.vt("Log out"), { chat.simplex.common.views.vibe.VibeAccount.showLogOut() }, textColor = chat.simplex.common.views.vibe.VibeColors.red, iconColor = chat.simplex.common.views.vibe.VibeColors.red, disabled = stopped && chatModel.currentUser.value == null)
+        SettingsActionItem(painterResource(MR.images.ic_heart), chat.simplex.common.views.vibe.vt("Support Vibe X"), showSettingsModal { chat.simplex.common.views.vibe.VibeSupportView() }, textColor = chat.simplex.common.views.vibe.VibeColors.blurple, iconColor = chat.simplex.common.views.vibe.VibeColors.red)
       }
       SectionDividerSpaced()
     }

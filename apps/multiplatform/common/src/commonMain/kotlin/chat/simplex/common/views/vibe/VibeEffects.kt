@@ -59,24 +59,24 @@ enum class VibeEffect(
   val count: Int,
   val pickable: Boolean = true,
 ) {
-  Like(5, "Like", "👍", VibeEmit.Burst, listOf("👍", "👍", "✨"), c(0xFFFFD54F, 0xFFFFB74D, 0xFF8C96F6),
+  Like(5, vt("Like"), "👍", VibeEmit.Burst, listOf("👍", "👍", "✨"), c(0xFFFFD54F, 0xFFFFB74D, 0xFF8C96F6),
     listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Spark, VibeParticle.Dot), 36),
-  Love(2, "Love", "❤️", VibeEmit.Rise, listOf("❤️", "💕", "💖", "💗"), c(0xFFFF5A5F, 0xFFFF80AB, 0xFFFFC1E3),
+  Love(2, vt("Love"), "❤️", VibeEmit.Rise, listOf("❤️", "💕", "💖", "💗"), c(0xFFFF5A5F, 0xFFFF80AB, 0xFFFFC1E3),
     listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Dot), 30),
-  Fire(6, "Fire", "🔥", VibeEmit.Rise, listOf("🔥"), c(0xFFFF7043, 0xFFFFB300, 0xFFFF3D00),
+  Fire(6, vt("Fire"), "🔥", VibeEmit.Rise, listOf("🔥"), c(0xFFFF7043, 0xFFFFB300, 0xFFFF3D00),
     listOf(VibeParticle.Ember, VibeParticle.Ember, VibeParticle.Ember, VibeParticle.Glyph), 48),
-  Party(1, "Party", "🎉", VibeEmit.Cannons, listOf("🎉", "🎊"), c(0xFFFF5252, 0xFFFFD740, 0xFF69F0AE, 0xFF40C4FF, 0xFFE040FB),
+  Party(1, vt("Party"), "🎉", VibeEmit.Cannons, listOf("🎉", "🎊"), c(0xFFFF5252, 0xFFFFD740, 0xFF69F0AE, 0xFF40C4FF, 0xFFE040FB),
     listOf(VibeParticle.Confetti, VibeParticle.Confetti, VibeParticle.Confetti, VibeParticle.Glyph), 70),
   Lol(7, "LOL", "😂", VibeEmit.Fall, listOf("😂", "🤣"), c(0xFF4FC3F7, 0xFFFFC83D),
     listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Dot), 30),
-  Dislike(8, "Dislike", "👎", VibeEmit.Fall, listOf("👎"), c(0xFF90A4AE, 0xFFB0BEC5),
+  Dislike(8, vt("Dislike"), "👎", VibeEmit.Fall, listOf("👎"), c(0xFF90A4AE, 0xFFB0BEC5),
     listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Dot), 22),
   Poop(9, "Poop", "💩", VibeEmit.Fall, listOf("💩"), c(0xFF8D6E63, 0xFFA1887F),
     listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Dot), 24),
-  Balloons(4, "Balloons", "🎈", VibeEmit.Rise, listOf("🎈"), c(0xFFFF5252, 0xFF40C4FF, 0xFFFFD740),
+  Balloons(4, vt("Balloons"), "🎈", VibeEmit.Rise, listOf("🎈"), c(0xFFFF5252, 0xFF40C4FF, 0xFFFFD740),
     listOf(VibeParticle.Glyph), 20),
   // sent by earlier Vibe X versions
-  Fireworks(3, "Fireworks", "🎆", VibeEmit.Burst, listOf("🎆", "✨"), c(0xFF5865F2, 0xFFEB459E, 0xFFFEE75C, 0xFF57F287),
+  Fireworks(3, vt("Fireworks"), "🎆", VibeEmit.Burst, listOf("🎆", "✨"), c(0xFF5865F2, 0xFFEB459E, 0xFFFEE75C, 0xFF57F287),
     listOf(VibeParticle.Spark, VibeParticle.Spark, VibeParticle.Dot, VibeParticle.Glyph), 60, pickable = false);
 
   companion object {

@@ -35,30 +35,30 @@ private fun signalOf(info: ChatInfo): Signal {
   val online = chatModel.networkInfo.value.online
   val running = chatModel.chatRunning.value
   return when {
-    !online -> Signal(0, grey, "No internet", "Messages will go out when your phone is back online.")
-    running == null -> Signal(1, VibeColors.blurple, "Starting…", "Vibe X is connecting to its servers.", busy = true)
-    running == false -> Signal(0, grey, "Chat is stopped", "Start it again in Settings › Database.")
+    !online -> Signal(0, grey, vt("No internet"), vt("Messages will go out when your phone is back online."))
+    running == null -> Signal(1, VibeColors.blurple, "Starting…", vt("Vibe X is connecting to its servers."), busy = true)
+    running == false -> Signal(0, grey, vt("Chat is stopped"), "Start it again in Settings › Database.")
     info is ChatInfo.Direct -> {
       val c = info.contact
       val sub = chatModel.chatSubStatus.value
       when {
-        !c.active -> Signal(0, VibeColors.red, "Contact deleted", "This contact deleted the connection.")
-        !c.ready -> Signal(1, amber, "Waiting for them", "They haven't accepted the invitation yet.")
-        sub is SubscriptionStatus.Removed -> Signal(1, VibeColors.red, "Connection error", sub.subError)
+        !c.active -> Signal(0, VibeColors.red, vt("Contact deleted"), "This contact deleted the connection.")
+        !c.ready -> Signal(1, amber, vt("Waiting for them"), vt("They haven't accepted the invitation yet."))
+        sub is SubscriptionStatus.Removed -> Signal(1, VibeColors.red, vt("Connection error"), sub.subError)
         sub == SubscriptionStatus.NoSub -> Signal(1, VibeColors.red, "Not subscribed", "The server isn't delivering this chat's messages. It retries by itself.")
-        sub == SubscriptionStatus.Pending -> Signal(2, VibeColors.blurple, "Connecting…", "Reaching your receiving server.", busy = true)
-        sub == SubscriptionStatus.Active -> Signal(4, VibeColors.green, "Connected", "Private end-to-end encrypted connection, ready to send and receive.")
-        else -> Signal(3, VibeColors.green, "Connected", "Checking the connection with your server…")
+        sub == SubscriptionStatus.Pending -> Signal(2, VibeColors.blurple, "Connecting…", vt("Reaching your receiving server."), busy = true)
+        sub == SubscriptionStatus.Active -> Signal(4, VibeColors.green, vt("Connected"), vt("Private end-to-end encrypted connection, ready to send and receive."))
+        else -> Signal(3, VibeColors.green, vt("Connected"), "Checking the connection with your server…")
       }
     }
     info is ChatInfo.Group -> {
       val m = info.groupInfo.membership
       when {
-        !m.memberActive -> Signal(1, amber, "Joining", "You'll get messages once you've joined.")
-        else -> Signal(4, VibeColors.green, "Connected", "Messages to the group go to each member over their own encrypted connection.")
+        !m.memberActive -> Signal(1, amber, vt("Joining"), vt("You'll get messages once you've joined."))
+        else -> Signal(4, VibeColors.green, vt("Connected"), "Messages to the group go to each member over their own encrypted connection.")
       }
     }
-    else -> Signal(4, VibeColors.green, "On this phone", "Private notes stay on this phone.")
+    else -> Signal(4, VibeColors.green, vt("On this phone"), vt("Private notes stay on this phone."))
   }
 }
 
@@ -113,23 +113,23 @@ object VibeChatMenu {
           Text(info.displayName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = VibeColors.onSurface(), maxLines = 1)
         }
         Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
-          if (info !is ChatInfo.Local) Row(VibeIcons.Info, "Chat details", VibeColors.onSurface()) { close(); onDetails() }
-          Row(VibeIcons.Search, "Search messages", VibeColors.onSurface()) { close(); onSearch() }
+          if (info !is ChatInfo.Local) Row(VibeIcons.Info, vt("Chat details"), VibeColors.onSurface()) { close(); onDetails() }
+          Row(VibeIcons.Search, vt("Search messages"), VibeColors.onSurface()) { close(); onSearch() }
         }
         if (chat != null) {
           Spacer(Modifier.height(12.dp))
           Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
             if (info is ChatInfo.Direct || info is ChatInfo.Group || info is ChatInfo.Local) {
-              Row(VibeIcons.Delete, "Clear chat", VibeColors.onSurface()) { close(); clearChatDialog(chat) }
+              Row(VibeIcons.Delete, vt("Clear chat"), VibeColors.onSurface()) { close(); clearChatDialog(chat) }
             }
             when (info) {
-              is ChatInfo.Direct -> Row(VibeIcons.Delete, "Delete chat", red) { close(); deleteContactDialog(chat, chatModel) }
+              is ChatInfo.Direct -> Row(VibeIcons.Delete, vt("Delete chat"), red) { close(); deleteContactDialog(chat, chatModel) }
               is ChatInfo.Group -> {
                 val gi = info.groupInfo
                 if (gi.membership.memberCurrentOrPending && !(gi.useRelays && gi.isOwner)) {
-                  Row(VibeIcons.ArrowBack, "Leave group", red) { close(); leaveGroupDialog(chat.remoteHostId, gi, chatModel) }
+                  Row(VibeIcons.ArrowBack, vt("Leave group"), red) { close(); leaveGroupDialog(chat.remoteHostId, gi, chatModel) }
                 }
-                if (gi.canDelete) Row(VibeIcons.Delete, "Delete group", red) { close(); deleteGroupDialog(chat, gi, chatModel) }
+                if (gi.canDelete) Row(VibeIcons.Delete, vt("Delete group"), red) { close(); deleteGroupDialog(chat, gi, chatModel) }
               }
               else -> {}
             }

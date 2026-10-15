@@ -86,26 +86,26 @@ private fun Sheet(chat0: Chat, onOpen: () -> Unit, close: () -> Unit) {
     val canToggle = info is ChatInfo.Direct || info is ChatInfo.Group
     if (canToggle) {
       Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-        RoundAction(VibeIcons.PushPin, pinnedUi, if (pinnedUi) "Unpin" else "Pin") {
+        RoundAction(VibeIcons.PushPin, pinnedUi, if (pinnedUi) vt("Unpin") else vt("Pin")) {
           run({ pinnedUi = !pinnedUi }, { toggleChatFavorite(chat.remoteHostId, info, pinnedUi, chatModel) }, if (pinnedUi) "Pinned $name" else "Unpinned $name")
         }
         RoundAction(
           if (mutedUi) painterIcon(MR.images.ic_notifications_off) else painterIcon(MR.images.ic_notifications),
-          mutedUi, if (mutedUi) "Unmute" else "Mute"
+          mutedUi, if (mutedUi) vt("Unmute") else vt("Mute")
         ) {
           run({ mutedUi = !mutedUi }, { toggleNotifications(chat.remoteHostId, info, if (mutedUi) MsgFilter.None else MsgFilter.All, chatModel) }, if (mutedUi) "Muted $name" else "Notifications on for $name")
         }
-        RoundAction(painterIcon(MR.images.ic_mark_chat_unread), unreadUi, if (unreadUi) "Read" else "Unread") {
-          run({ unreadUi = !unreadUi }, { if (unreadUi) markChatUnread(chat, chatModel) else markChatRead(chat) }, if (unreadUi) "Marked unread" else "Marked as read")
+        RoundAction(painterIcon(MR.images.ic_mark_chat_unread), unreadUi, if (unreadUi) vt("Read") else vt("Unread")) {
+          run({ unreadUi = !unreadUi }, { if (unreadUi) markChatUnread(chat, chatModel) else markChatRead(chat) }, if (unreadUi) vt("Marked unread") else vt("Marked as read"))
         }
       }
       Spacer(Modifier.height(14.dp))
     }
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard())) {
-      ListRow(VibeIcons.Chat, "Open chat") { close(); onOpen() }
+      ListRow(VibeIcons.Chat, vt("Open chat")) { close(); onOpen() }
       if (canToggle) {
         val archived = VibeChatSets.isArchived(chat.id)
-        ListRow(VibeIcons.Archive, if (archived) "Unarchive" else "Archive", subtitle = if (archived) null else "Hide it from your list") {
+        ListRow(VibeIcons.Archive, if (archived) vt("Unarchive") else vt("Archive"), subtitle = if (archived) null else vt("Hide it from your list")) {
           close()
           VibeChatSets.setArchived(chat.id, !archived)
           if (!archived && VibeRail.selected.value == chat.id) VibeRail.selected.value = null
@@ -113,10 +113,10 @@ private fun Sheet(chat0: Chat, onOpen: () -> Unit, close: () -> Unit) {
           showToast(if (archived) "$name is back in your list" else "$name archived. Long-press your picture to find it.")
         }
         val locked = VibeChatSets.isLocked(chat.id)
-        ListRow(VibeIcons.Lock, if (locked) "Unlock chat" else "Lock chat", subtitle = if (locked) null else "Opens only with your fingerprint or PIN") {
+        ListRow(VibeIcons.Lock, if (locked) vt("Unlock chat") else vt("Lock chat"), subtitle = if (locked) null else vt("Opens only with your fingerprint or PIN")) {
           close(); VibeChatSets.toggleLock(chat)
         }
-        ListRow(VibeIcons.Folder, if (chat.vibeTags().isEmpty()) "Add to folder" else "Change folder") {
+        ListRow(VibeIcons.Folder, if (chat.vibeTags().isEmpty()) vt("Add to folder") else vt("Change folder")) {
           close()
           ModalManager.start.showModalCloseable { c ->
             if (chatModel.userTags.value.isEmpty()) TagListEditor(rhId = chat.remoteHostId, chat = chat, close = c)
@@ -125,16 +125,16 @@ private fun Sheet(chat0: Chat, onOpen: () -> Unit, close: () -> Unit) {
         }
       }
       if (info is ChatInfo.Direct || info is ChatInfo.Group || info is ChatInfo.Local) {
-        ListRow(painterIcon(MR.images.ic_settings_backup_restore), "Clear chat history", subtitle = "Messages go, the chat stays") { close(); clearChatDialog(chat) }
+        ListRow(painterIcon(MR.images.ic_settings_backup_restore), vt("Clear chat history"), subtitle = vt("Messages go, the chat stays")) { close(); clearChatDialog(chat) }
       }
       when (info) {
-        is ChatInfo.Direct -> ListRow(VibeIcons.Delete, "Delete chat", color = deleteRed) { close(); deleteContactDialog(chat, chatModel) }
+        is ChatInfo.Direct -> ListRow(VibeIcons.Delete, vt("Delete chat"), color = deleteRed) { close(); deleteContactDialog(chat, chatModel) }
         is ChatInfo.Group -> {
           val gi = info.groupInfo
           if (gi.membership.memberCurrentOrPending && !(gi.useRelays && gi.isOwner)) {
-            ListRow(painterIcon(MR.images.ic_logout), "Leave", color = deleteRed) { close(); leaveGroupDialog(chat.remoteHostId, gi, chatModel) }
+            ListRow(painterIcon(MR.images.ic_logout), vt("Leave"), color = deleteRed) { close(); leaveGroupDialog(chat.remoteHostId, gi, chatModel) }
           }
-          if (gi.canDelete) ListRow(VibeIcons.Delete, "Delete group", color = deleteRed) { close(); deleteGroupDialog(chat, gi, chatModel) }
+          if (gi.canDelete) ListRow(VibeIcons.Delete, vt("Delete group"), color = deleteRed) { close(); deleteGroupDialog(chat, gi, chatModel) }
         }
         else -> {}
       }
