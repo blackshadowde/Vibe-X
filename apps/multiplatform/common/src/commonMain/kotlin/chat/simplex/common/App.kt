@@ -29,6 +29,7 @@ import chat.simplex.common.views.SplashView
 import chat.simplex.common.views.call.*
 import chat.simplex.common.views.chat.ChatView
 import chat.simplex.common.views.chatlist.*
+import chat.simplex.common.views.vibe.VibeHome
 import chat.simplex.common.views.database.DatabaseErrorView
 import chat.simplex.common.views.helpers.*
 import chat.simplex.common.views.helpers.ModalManager.Companion.fromEndToStartTransition
@@ -372,7 +373,12 @@ fun StartPartOfScreen(userPickerState: MutableStateFlow<AnimatedViewState>) {
     val stopped = chatModel.chatRunning.value == false
     if (chatModel.sharedContent.value == null) {
       CompositionLocalProvider(LocalAppBarHandler provides rememberAppBarHandler()) {
-        ChatListView(chatModel, userPickerState, AppLock::setPerformLA, stopped)
+        if (appPlatform.isAndroid) {
+          // Vibe X: Discord layout (rail + middle pane) around the chat list
+          VibeHome { ChatListView(chatModel, userPickerState, AppLock::setPerformLA, stopped) }
+        } else {
+          ChatListView(chatModel, userPickerState, AppLock::setPerformLA, stopped)
+        }
       }
     } else {
       // LALAL initial load of view doesn't show blur. Focusing text field shows it
