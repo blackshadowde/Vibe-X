@@ -80,7 +80,7 @@ fun VibeLiveText(text: String, modifier: Modifier = Modifier) {
     }
     withStyle(SpanStyle(color = VibeBlurple.copy(alpha = caret), fontWeight = FontWeight.Bold)) { append("▍") }
   }
-  Text(styled, modifier, fontSize = 16.sp, color = base)
+  Text(styled, modifier, fontSize = vibeMessageTextSize().sp, color = base)
 }
 
 /** Small "typing live" label with a breathing dot, above a live message. */

@@ -98,7 +98,7 @@ fun SettingsLayout(
     AppBarTitle(stringResource(MR.strings.your_settings))
 
     SectionView {
-      SettingsActionItem(painterResource(MR.images.ic_light_mode), stringResource(MR.strings.appearance_settings), showSettingsModal { AppearanceView(it) })
+      SettingsActionItem(painterResource(MR.images.ic_light_mode), stringResource(MR.strings.appearance_settings), showSettingsModal { if (chat.simplex.common.views.vibe.vibeStyle) chat.simplex.common.views.vibe.VibeStyleView() else AppearanceView(it) })
       SettingsActionItem(painterResource(MR.images.ic_lock), stringResource(MR.strings.your_privacy), showSettingsModal { PrivacySettingsView(it, showSettingsModal, setPerformLA) }, disabled = stopped)
       // Vibe X: SimpleX's own help, news, founder chat and donations are not shown
       if (!chat.simplex.common.views.vibe.vibeStyle) {

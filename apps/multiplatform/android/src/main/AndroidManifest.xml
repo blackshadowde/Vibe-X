@@ -19,6 +19,10 @@
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
       tools:ignore="ScopedStorage" />
   <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+  <!-- Vibe X: recent photos and videos in the "+" pane -->
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
   <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
   <!-- Requirements that allows to specify foreground service types -->

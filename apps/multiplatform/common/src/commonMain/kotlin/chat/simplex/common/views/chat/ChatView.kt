@@ -302,7 +302,7 @@ fun ChatView(
                   }
                   ComposeView(
                     rhId = remoteHostId.value, chatModel, chatsCtx, Chat(remoteHostId = chatRh, chatInfo = chatInfo, chatItems = emptyList()), composeState, showCommandsMenu, attachmentOption,
-                    showChooseAttachment = { scope.launch { attachmentBottomSheetState.show() } },
+                    showChooseAttachment = { if (vibeStyle) VibeAttachSheet.show(attachmentOption, composeState) else scope.launch { attachmentBottomSheetState.show() } },
                     focusRequester = focusRequester
                   )
                 }

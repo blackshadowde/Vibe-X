@@ -1690,6 +1690,14 @@ fun ComposeView(
     chatModel.sharedContent.value = null
   }
 
+  // Vibe: "Send N" in the + pane sends the picked photos as soon as they're attached
+  LaunchedEffect(composeState.value.preview) {
+    if (VibeAttachSend.pending.value && composeState.value.preview is ComposePreview.MediaPreview) {
+      VibeAttachSend.pending.value = false
+      sendMessage(null)
+    }
+  }
+
   LaunchedEffect(composeState.value.inProgress) {
     val newProgressByTimeout = if (composeState.value.inProgress) {
       delay(1000)

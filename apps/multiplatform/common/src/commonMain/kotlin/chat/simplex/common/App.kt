@@ -189,7 +189,7 @@ fun MainScreen() {
           ) { state ->
             when (state) {
               OnboardingStage.OnboardingComplete -> {}
-              OnboardingStage.Step1_SimpleXInfo -> SimpleXInfo(chatModel, onboarding = true)
+              OnboardingStage.Step1_SimpleXInfo -> if (vibeStyle) VibeWelcome(chatModel) else SimpleXInfo(chatModel, onboarding = true)
               OnboardingStage.Step2_CreateProfile -> CreateFirstProfile(chatModel) {}
               OnboardingStage.LinkAMobile -> LinkAMobile()
               OnboardingStage.Step2_5_SetupDatabasePassphrase -> SetupDatabasePassphrase(chatModel)

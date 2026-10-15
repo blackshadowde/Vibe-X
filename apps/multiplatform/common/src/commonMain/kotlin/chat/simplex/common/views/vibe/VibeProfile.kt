@@ -71,7 +71,7 @@ object VibeProfileSheet {
         subtitle = member.memberProfile.contactLink?.let { simplexChatLink(it) },
         fullName = member.fullName.takeIf { it.isNotBlank() && it != member.displayName },
         about = listOfNotNull(member.memberProfile.shortDescr, member.memberProfile.description).filter { it.isNotBlank() }.joinToString("\n\n").ifBlank { null },
-        since = member.createdAt,
+        since = null,
         sinceLabel = "Member of ${groupInfo.displayName} since",
         close = close,
         message = { close(); onMore() },
