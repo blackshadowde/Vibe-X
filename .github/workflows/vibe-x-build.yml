@@ -1,0 +1,124 @@
+name: Vibe X build
+
+# Builds the Vibe X Android app (APK). Run it from the Actions tab.
+#
+# Only the app (Kotlin, Jetpack Compose) is built here. SimpleX's core
+# (libsimplex.so / libsupport.so, written in Haskell) is taken from the
+# official SimpleX release with the same version, so messaging, encryption
+# and calls are exactly SimpleX's.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Also publish the APK as a GitHub release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/node_modules /opt/ghc /usr/local/.ghcup || true
+          df -h /
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Android NDK and CMake
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;23.1.7779620" "cmake;3.22.1" > /dev/null
+
+      - name: SimpleX core for this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION=$(grep '^android.version_name=' apps/multiplatform/gradle.properties | cut -d= -f2)
+          TAG="v$VERSION"
+          echo "SimpleX version $TAG"
+          mkdir -p core
+          gh release download "$TAG" -R simplex-chat/simplex-chat -p '*.apk' -D core
+          ls -la core
+          LIBS=apps/multiplatform/common/src/commonMain/cpp/android/libs
+          for apk in core/*.apk; do
+            for abi in arm64-v8a armeabi-v7a; do
+              if unzip -l "$apk" "lib/$abi/libsimplex.so" > /dev/null 2>&1; then
+                mkdir -p "$LIBS/$abi"
+                unzip -o -j "$apk" "lib/$abi/libsimplex.so" "lib/$abi/libsupport.so" -d "$LIBS/$abi" > /dev/null
+                echo "core for $abi from $(basename "$apk")"
+              fi
+            done
+          done
+          test -f "$LIBS/arm64-v8a/libsimplex.so" || { echo "::error::No arm64 core found in the $TAG release"; exit 1; }
+          ls -la "$LIBS"/*
+
+      - name: Build
+        working-directory: apps/multiplatform
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon :android:assembleFossRelease 2>&1 | tee build.log || {
+            grep -E "^e: |error:|FAILURE|What went wrong" -A3 build.log | head -60 | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
+          }
+
+      - name: Sign
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KSPASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          if [ -n "${KS:-}" ] && [ -n "${KSPASS:-}" ]; then
+            printf '%s' "$KS" | base64 -d > key.jks
+            ALIAS=vibe
+          else
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD secrets: signing with a one-off key. Installing a later build will need an uninstall first."
+            KSPASS=vibexdebug
+            keytool -genkeypair -keystore key.jks -alias vibe -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$KSPASS" -keypass "$KSPASS" -dname "CN=Vibe X" > /dev/null
+            ALIAS=vibe
+          fi
+          VERSION=$(grep '^android.version_name=' apps/multiplatform/gradle.properties | cut -d= -f2)
+          OUT=apps/multiplatform/android/build/outputs/apk/foss/release
+          mkdir -p dist
+          for abi in arm64-v8a armeabi-v7a; do
+            IN="$OUT/android-foss-$abi-release-unsigned.apk"
+            [ -f "$IN" ] || continue
+            NAME="vibe-x-$VERSION-$abi.apk"
+            "$BT/zipalign" -f 4 "$IN" "dist/aligned.apk"
+            "$BT/apksigner" sign --ks key.jks --ks-key-alias "$ALIAS" \
+              --ks-pass "pass:$KSPASS" --key-pass "pass:$KSPASS" \
+              --out "dist/$NAME" dist/aligned.apk
+            rm dist/aligned.apk
+          done
+          rm -f key.jks
+          ls -la dist
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vibe-x-apk
+          path: dist/*.apk
+
+      - name: Release
+        if: ${{ inputs.release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="vibe-x-${VERSION}-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" dist/*.apk -R "$GITHUB_REPOSITORY" \
+            --title "Vibe X ${VERSION} (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Most phones: the arm64-v8a APK. Older 32-bit phones: armeabi-v7a."
