@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -67,10 +68,9 @@ fun VibeHome(userPickerState: MutableStateFlow<AnimatedViewState>, stopped: Bool
   }
   // what SimpleX's chat list did when it opened
   LaunchedEffect(Unit) {
-    val showWhatsNew = shouldShowWhatsNew(chatModel)
     val showUpdatedConditions = chatModel.conditions.value.conditionsAction?.shouldShowNotice ?: false
     // Vibe X: only the updated server conditions notice, not SimpleX's what's new / invest pages
-    if (showUpdatedConditions && showWhatsNew || showUpdatedConditions) {
+    if (showUpdatedConditions) {
       delay(1000L)
       ModalManager.center.showCustomModal { close -> WhatsNewView(close = close, updatedConditions = showUpdatedConditions) }
     }
