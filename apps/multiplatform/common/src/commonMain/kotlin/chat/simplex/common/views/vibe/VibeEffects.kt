@@ -10,6 +10,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -29,16 +38,51 @@ import kotlin.random.Random
  * Vibe X shows the effect full screen when it arrives.
  * ------------------------------------------------------------------------ */
 
-enum class VibeEffect(val code: Int, val label: String, val emoji: String) {
-  Confetti(1, "Confetti", "🎉"),
-  Hearts(2, "Hearts", "💖"),
-  Fireworks(3, "Fireworks", "🎆"),
-  Balloons(4, "Balloons", "🎈");
+enum class VibeEmit { Burst, Rise, Fall, Cannons }
+enum class VibeParticle { Glyph, Confetti, Ember, Spark, Dot }
+
+private fun c(vararg v: Long) = v.map { Color(it) }
+
+/**
+ * Vibe's send effects (long-press send). [code] is what travels with the
+ * message (see [mark]); the look is Vibe's: the big animated emoji pops up
+ * in the middle while particles fill the screen in the effect's own way.
+ */
+enum class VibeEffect(
+  val code: Int,
+  val label: String,
+  val emoji: String,
+  val emit: VibeEmit,
+  val glyphs: List<String>,
+  val colors: List<Color>,
+  val kinds: List<VibeParticle>,
+  val count: Int,
+  val pickable: Boolean = true,
+) {
+  Like(5, "Like", "👍", VibeEmit.Burst, listOf("👍", "👍", "✨"), c(0xFFFFD54F, 0xFFFFB74D, 0xFF8C96F6),
+    listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Spark, VibeParticle.Dot), 36),
+  Love(2, "Love", "❤️", VibeEmit.Rise, listOf("❤️", "💕", "💖", "💗"), c(0xFFFF5A5F, 0xFFFF80AB, 0xFFFFC1E3),
+    listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Dot), 30),
+  Fire(6, "Fire", "🔥", VibeEmit.Rise, listOf("🔥"), c(0xFFFF7043, 0xFFFFB300, 0xFFFF3D00),
+    listOf(VibeParticle.Ember, VibeParticle.Ember, VibeParticle.Ember, VibeParticle.Glyph), 48),
+  Party(1, "Party", "🎉", VibeEmit.Cannons, listOf("🎉", "🎊"), c(0xFFFF5252, 0xFFFFD740, 0xFF69F0AE, 0xFF40C4FF, 0xFFE040FB),
+    listOf(VibeParticle.Confetti, VibeParticle.Confetti, VibeParticle.Confetti, VibeParticle.Glyph), 70),
+  Lol(7, "LOL", "😂", VibeEmit.Fall, listOf("😂", "🤣"), c(0xFF4FC3F7, 0xFFFFC83D),
+    listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Dot), 30),
+  Dislike(8, "Dislike", "👎", VibeEmit.Fall, listOf("👎"), c(0xFF90A4AE, 0xFFB0BEC5),
+    listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Dot), 22),
+  Poop(9, "Poop", "💩", VibeEmit.Fall, listOf("💩"), c(0xFF8D6E63, 0xFFA1887F),
+    listOf(VibeParticle.Glyph, VibeParticle.Glyph, VibeParticle.Dot), 24),
+  Balloons(4, "Balloons", "🎈", VibeEmit.Rise, listOf("🎈"), c(0xFFFF5252, 0xFF40C4FF, 0xFFFFD740),
+    listOf(VibeParticle.Glyph), 20),
+  // sent by earlier Vibe X versions
+  Fireworks(3, "Fireworks", "🎆", VibeEmit.Burst, listOf("🎆", "✨"), c(0xFF5865F2, 0xFFEB459E, 0xFFFEE75C, 0xFF57F287),
+    listOf(VibeParticle.Spark, VibeParticle.Spark, VibeParticle.Dot, VibeParticle.Glyph), 60, pickable = false);
 
   companion object {
-    private const val MARK = "⁣⁣"
-    private const val TICK = '​'
-    private val tail = Regex("⁣⁣(​{1,8})$")
+    private const val MARK = "\u2063\u2063"
+    private const val TICK = '\u200B'
+    private val tail = Regex("\u2063\u2063(\u200B{1,12})$")
 
     fun of(text: String): VibeEffect? {
       val m = tail.find(text) ?: return null
@@ -47,17 +91,21 @@ enum class VibeEffect(val code: Int, val label: String, val emoji: String) {
     }
 
     fun strip(text: String): String = text.replace(tail, "")
+
+    val picker: List<VibeEffect> get() = entries.filter { it.pickable }
   }
 
   fun mark(text: String): String = strip(text) + MARK + TICK.toString().repeat(code)
 }
 
 object VibeEffects {
-  val current = mutableStateOf<Pair<VibeEffect, Long>?>(null)
+  class Play(val effect: VibeEffect, val id: Long, val now: Boolean)
+  val current = mutableStateOf<Play?>(null)
   private val played = HashSet<Long>()
 
-  fun play(effect: VibeEffect) {
-    current.value = effect to System.nanoTime()
+  /** Plays [effect] over the chat; it waits a moment for the message to slide in, unless [now]. */
+  fun play(effect: VibeEffect, now: Boolean = false) {
+    current.value = Play(effect, System.nanoTime(), now)
   }
 
   /** Play the effect of a message that just arrived (or was just sent), once. */
@@ -83,6 +131,7 @@ object VibeBurst {
 
   /** [at] is in root coordinates. */
   fun fire(emoji: String, at: Offset, big: Boolean = false) {
+    VibeHaptics.light()
     if (bursts.size > 6) bursts.removeAt(0)
     bursts.add(Burst(next++, emoji, at, big))
   }
@@ -103,8 +152,8 @@ fun VibeOverlay(modifier: Modifier = Modifier) {
     }
     val fx = VibeEffects.current.value
     if (fx != null && size.width > 0) {
-      key(fx.second) {
-        EffectView(fx.first, size) { if (VibeEffects.current.value == fx) VibeEffects.current.value = null }
+      key(fx.id) {
+        EffectView(fx.effect, size, fx.now) { if (VibeEffects.current.value === fx) VibeEffects.current.value = null }
       }
     }
   }
@@ -160,119 +209,219 @@ private fun BurstView(b: VibeBurst.Burst, center: Offset, done: () -> Unit) {
   }
 }
 
-private val confettiColors = listOf(
-  Color(0xFF5865F2), Color(0xFFEB459E), Color(0xFFFEE75C), Color(0xFF57F287), Color(0xFFED4245), Color(0xFF3BA5FF)
+private class Particle(
+  val kind: VibeParticle,
+  val sx: Float, val sy: Float,
+  val vx: Float, val vy: Float, // px per run
+  val size: Float, // dp
+  val delay: Float, val life: Float,
+  val spin: Float, val sway: Float,
+  val color: Color,
+  val glyph: String?,
 )
 
+private fun easeOutBack(t: Float): Float {
+  val c1 = 1.70158f
+  val c3 = c1 + 1f
+  return 1f + c3 * (t - 1f).pow(3) + c1 * (t - 1f).pow(2)
+}
+
+private fun easeIn(t: Float) = t * t * t
+
+private fun makeParticles(e: VibeEffect, area: androidx.compose.ui.geometry.Rect, o: Offset, d: Float): List<Particle> {
+  val r = Random
+  val w = area.width
+  val h = area.height
+  return List(e.count) { i ->
+    val kind = e.kinds[r.nextInt(e.kinds.size)]
+    var size = 6f + r.nextFloat() * 8f
+    var glyph: String? = null
+    if (kind == VibeParticle.Glyph) {
+      size = 20f + r.nextFloat() * 20f
+      glyph = e.glyphs[r.nextInt(e.glyphs.size)]
+    }
+    var sx = o.x
+    var sy = o.y
+    var vx = 0f
+    var vy = 0f
+    var delay = r.nextFloat() * 0.25f
+    var life = 0.55f + r.nextFloat() * 0.3f
+    when (e.emit) {
+      VibeEmit.Burst -> {
+        val a = r.nextFloat() * PI.toFloat() * 2
+        val speed = (120f + r.nextFloat() * 220f) * d
+        vx = cos(a) * speed
+        vy = sin(a) * speed
+        delay = 0.06f + r.nextFloat() * 0.12f
+      }
+      VibeEmit.Rise -> {
+        sx = area.left + r.nextFloat() * w
+        sy = area.bottom + 30f * d
+        vx = (r.nextFloat() - 0.5f) * 80f * d
+        vy = -(h * (0.55f + r.nextFloat() * 0.5f))
+        delay = r.nextFloat() * 0.35f
+      }
+      VibeEmit.Fall -> {
+        sx = area.left + r.nextFloat() * w
+        sy = area.top - 40f * d
+        vx = (r.nextFloat() - 0.5f) * 60f * d
+        vy = h * (0.7f + r.nextFloat() * 0.5f)
+        delay = r.nextFloat() * 0.4f
+      }
+      VibeEmit.Cannons -> {
+        val left = i % 2 == 0
+        sx = if (left) area.left - 10f * d else area.right + 10f * d
+        sy = area.top + h * 0.85f
+        val a = if (left) -PI.toFloat() / 2 + 0.25f + r.nextFloat() * 0.6f else -PI.toFloat() / 2 - 0.25f - r.nextFloat() * 0.6f
+        val speed = h * (0.55f + r.nextFloat() * 0.45f)
+        vx = cos(a) * speed
+        vy = sin(a) * speed
+        delay = r.nextFloat() * 0.12f
+        life = 0.7f + r.nextFloat() * 0.25f
+      }
+    }
+    Particle(kind, sx, sy, vx, vy, size, delay, life, (r.nextFloat() - 0.5f) * 12f, r.nextFloat() * PI.toFloat() * 2, e.colors[r.nextInt(e.colors.size)], glyph)
+  }
+}
+
+/**
+ * Vibe's effect player: the big animated emoji pops up in the middle of the
+ * chat, wobbles and shrinks away, while the particles fill the screen.
+ * Starts once the message has slid into the timeline, so the two never fight.
+ */
 @Composable
-private fun EffectView(effect: VibeEffect, size: IntSize, done: () -> Unit) {
-  val duration = 3400
+private fun EffectView(effect: VibeEffect, size: IntSize, now: Boolean, done: () -> Unit) {
+  val dens = LocalDensity.current
+  val d = dens.density
   val p = remember { Animatable(0f) }
+  var started by remember { mutableStateOf(false) }
   LaunchedEffect(Unit) {
-    p.animateTo(1f, tween(duration, easing = LinearEasing))
+    if (!now) delay(520)
+    started = true
+    VibeHaptics.medium()
+    launch { delay(160); VibeHaptics.light() }
+    p.animateTo(1f, tween(2600, easing = LinearEasing))
     done()
   }
   val w = size.width.toFloat()
   val h = size.height.toFloat()
-  when (effect) {
-    VibeEffect.Confetti -> {
-      val bits = remember {
-        List(110) {
-          floatArrayOf(
-            Random.nextFloat() * w, // x
-            -Random.nextFloat() * h * 0.6f, // start y
-            0.55f + Random.nextFloat() * 0.7f, // fall speed
-            Random.nextFloat() * 360f, // rotation
-            (Random.nextFloat() - 0.5f) * 900f, // spin
-            Random.nextFloat() * 6.28f, // sway phase
-            Random.nextInt(confettiColors.size).toFloat(),
+  // between the top bar and the message box
+  val area = remember(size) { androidx.compose.ui.geometry.Rect(0f, h * 0.1f, w, h * 0.86f) }
+  val origin = area.center
+  val ps = remember(size) { makeParticles(effect, area, origin, d) }
+  val measurer = rememberTextMeasurer()
+  val layouts = remember { HashMap<String, androidx.compose.ui.text.TextLayoutResult>() }
+  val gravity = when (effect.emit) {
+    VibeEmit.Burst -> 160f
+    VibeEmit.Cannons -> 520f
+    VibeEmit.Rise -> -40f
+    VibeEmit.Fall -> 120f
+  } * d
+  val glow = effect.colors.first()
+  if (!started) return
+  Canvas(Modifier.fillMaxSize()) {
+    val t = p.value
+    val g = if (t < 0.15f) t / 0.15f else (1f - (t - 0.15f) / 0.6f).coerceIn(0f, 1f)
+    if (g > 0f) {
+      drawCircle(
+        Brush.radialGradient(listOf(glow.copy(alpha = 0.32f * g), Color.Transparent), center = origin, radius = 160f * d),
+        radius = 160f * d, center = origin
+      )
+    }
+    for (pt in ps) {
+      val u = ((t - pt.delay) / pt.life).coerceIn(0f, 1f)
+      if (u <= 0f || u >= 1f) continue
+      val x = pt.sx + pt.vx * u + 18f * d * sin(pt.sway + u * 6f)
+      val y = pt.sy + pt.vy * u + gravity * u * u
+      val fadeIn = (u / 0.08f).coerceIn(0f, 1f)
+      val fadeOut = 1f - easeIn(((u - 0.65f) / 0.35f).coerceIn(0f, 1f))
+      val a = (fadeIn * fadeOut).coerceIn(0f, 1f)
+      if (a <= 0f) continue
+      val sz = pt.size * d
+      when (pt.kind) {
+        VibeParticle.Dot -> drawCircle(pt.color.copy(alpha = a), sz * 0.4f, Offset(x, y))
+        VibeParticle.Spark -> {
+          val rr = sz * (1f - 0.3f * u) + 2f * d
+          val path = Path().apply {
+            moveTo(x, y - rr)
+            quadraticTo(x, y, x + rr, y)
+            quadraticTo(x, y, x, y + rr)
+            quadraticTo(x, y, x - rr, y)
+            quadraticTo(x, y, x, y - rr)
+            close()
+          }
+          drawPath(path, pt.color.copy(alpha = a))
+        }
+        VibeParticle.Ember -> {
+          val flicker = 0.65f + 0.35f * sin(t * 50f + pt.spin)
+          val rr = sz * 0.55f * (1f - 0.5f * u) * 1.6f
+          drawCircle(
+            Brush.radialGradient(listOf(pt.color.copy(alpha = a * flicker), pt.color.copy(alpha = 0f)), center = Offset(x, y), radius = rr),
+            radius = rr, center = Offset(x, y)
           )
         }
-      }
-      Canvas(Modifier.fillMaxSize()) {
-        val v = p.value
-        val fade = if (v > 0.8f) (1f - v) / 0.2f else 1f
-        for (b in bits) {
-          val y = b[1] + v * h * 1.5f * b[2]
-          val x = b[0] + sin(b[5] + v * 9f) * 30f
-          rotate(b[3] + b[4] * v, Offset(x, y)) {
-            drawRect(
-              confettiColors[b[6].toInt()].copy(alpha = fade),
-              topLeft = Offset(x - 9f, y - 5f),
-              size = Size(18f, 10f * abs(cos(v * 14f + b[5])) + 2f)
-            )
+        VibeParticle.Confetti -> {
+          rotate(pt.spin * u * 57.3f, Offset(x, y)) {
+            val sy = abs(cos(pt.sway + u * 14f)) * 0.8f + 0.2f
+            val cw = sz * 1.2f
+            val ch = sz * 0.5f * sy
+            drawRect(pt.color.copy(alpha = a), topLeft = Offset(x - cw / 2, y - ch / 2), size = Size(cw, ch))
           }
         }
-      }
-    }
-    VibeEffect.Fireworks -> {
-      val shells = remember {
-        List(6) {
-          floatArrayOf(
-            w * (0.15f + Random.nextFloat() * 0.7f),
-            h * (0.15f + Random.nextFloat() * 0.4f),
-            it * 0.11f, // start
-            Random.nextInt(confettiColors.size).toFloat(),
-          )
-        }
-      }
-      Canvas(Modifier.fillMaxSize()) {
-        val v = p.value
-        for (s in shells) {
-          val t = ((v - s[2]) / 0.45f)
-          if (t <= 0f || t >= 1f) continue
-          val color = confettiColors[s[3].toInt()]
-          val rise = (t / 0.3f).coerceAtMost(1f)
-          if (t < 0.3f) {
-            // the rocket going up
-            drawCircle(color, 6f, Offset(s[0], h - (h - s[1]) * rise))
-          } else {
-            val e = (t - 0.3f) / 0.7f
-            val r = 260f * (1f - (1f - e).pow(2))
-            for (i in 0 until 26) {
-              val a = i / 26f * 2 * PI.toFloat()
-              val c = Offset(s[0] + cos(a) * r, s[1] + sin(a) * r + 90f * e * e)
-              drawCircle(color.copy(alpha = (1f - e)), 7f * (1f - e * 0.6f), c)
-              drawCircle(Color.White.copy(alpha = (1f - e) * 0.7f), 2.5f, c)
+        VibeParticle.Glyph -> {
+          val gl = pt.glyph ?: continue
+          val key = gl + pt.size.toInt()
+          val layout = layouts.getOrPut(key) {
+            measurer.measure(gl, TextStyle(fontFamily = EmojiFont, fontSize = (pt.size / dens.fontScale).sp))
+          }
+          val sc = 0.7f + 0.3f * easeOutBack(fadeIn)
+          rotate(0.25f * sin(pt.sway + u * 5f) * 57.3f, Offset(x, y)) {
+            scale(sc, Offset(x, y)) {
+              drawText(layout, topLeft = Offset(x - layout.size.width / 2f, y - layout.size.height / 2f), alpha = a)
             }
           }
         }
       }
     }
-    VibeEffect.Hearts, VibeEffect.Balloons -> {
-      val emojis = if (effect == VibeEffect.Hearts) listOf("💖", "❤️", "💕", "💗", "💘") else listOf("🎈", "🎈", "🎈", "🎉")
-      val items = remember {
-        List(26) {
-          floatArrayOf(
-            Random.nextFloat() * w,
-            Random.nextFloat() * 0.45f, // delay
-            0.7f + Random.nextFloat() * 0.6f, // speed
-            Random.nextFloat() * 6.28f,
-            Random.nextInt(emojis.size).toFloat(),
-            if (effect == VibeEffect.Hearts) 22f + Random.nextFloat() * 22f else 34f + Random.nextFloat() * 20f
-          )
-        }
-      }
-      val v = p.value
-      for (it in items) {
-        val t = ((v - it[1]) / (1f - it[1])).coerceIn(0f, 1f)
-        if (t <= 0f) continue
-        Text(
-          emojis[it[4].toInt()],
-          style = burstEmojiStyle,
-          fontSize = it[5].sp,
-          modifier = Modifier.graphicsLayer {
-            translationX = it[0] + sin(it[3] + t * 7f) * 40f
-            translationY = h - t * (h + 200f) * it[2]
-            rotationZ = sin(it[3] + t * 5f) * 18f
-            val pop = if (t < 0.12f) t / 0.12f else 1f
-            scaleX = pop; scaleY = pop
-            alpha = if (t > 0.8f) (1f - t) / 0.2f else 1f
-          }
-        )
-      }
-    }
   }
+  // the big animated emoji
+  val big = 150.dp
+  val bigPx = with(dens) { big.toPx() }
+  VibeAnimatedEmoji(
+    effect.emoji, big,
+    Modifier.graphicsLayer {
+      val t = p.value
+      var scale: Float
+      var alpha = 1f
+      if (t < 0.14f) {
+        scale = easeOutBack(t / 0.14f)
+      } else if (t < 0.62f) {
+        scale = 1f + 0.05f * sin((t - 0.14f) / 0.48f * PI.toFloat() * 3f)
+      } else {
+        val u = ((t - 0.62f) / 0.22f).coerceIn(0f, 1f)
+        scale = 1f - 0.5f * u * u
+        alpha = 1f - u
+      }
+      translationX = origin.x - bigPx / 2
+      translationY = origin.y - bigPx / 2
+      scaleX = scale.coerceIn(0f, 2f)
+      scaleY = scale.coerceIn(0f, 2f)
+      this.alpha = alpha.coerceIn(0f, 1f)
+    }
+  )
+}
+
+/** The small effect emoji next to a message sent with one: tap to play it again. */
+@Composable
+fun VibeEffectBadge(effect: VibeEffect, modifier: Modifier = Modifier) {
+  Text(
+    effect.emoji,
+    modifier
+      .clip(androidx.compose.foundation.shape.CircleShape)
+      .clickable { VibeEffects.play(effect, now = true) }
+      .padding(start = 8.dp, top = 6.dp, end = 6.dp, bottom = 2.dp),
+    style = burstEmojiStyle, fontSize = 13.sp
+  )
 }
 
 /** Plays the effect for a message that just came in. */

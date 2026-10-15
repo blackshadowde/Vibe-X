@@ -256,7 +256,7 @@ fun SendMsgView(
 
             if (cs.liveMessage == null && !cs.editing && !nextConnect || sendMsgEnabled) {
               if (sendWithEffect != null && !cs.editing && cs.preview is ComposePreview.NoPreview && sendMsgEnabled) {
-                VibeEffect.entries.forEach { effect ->
+                VibeEffect.picker.forEach { effect ->
                   menuItems.add {
                     ItemAction("${effect.emoji}   Send with ${effect.label.lowercase()}") {
                       showDropdown.value = false

@@ -74,7 +74,7 @@ fun AppScreen() {
               drawRect(Color.Black,  topLeft = Offset(-(paddingStart + cutoutMax).toPx(), 0f), Size(size.width + (paddingStart + cutoutMax).toPx() + (paddingEnd + cutoutMax).toPx(), size.height))
             }
           }) {
-            MainScreen()
+            if (vibeStyle) VibeMotionRoot { MainScreen() } else MainScreen()
           }
         }
       }
@@ -383,7 +383,7 @@ private fun VibeAndroidScreen(userPickerState: MutableStateFlow<AnimatedViewStat
     // 0 = home, 1 = chat fully open
     val progress = remember { Animatable(if (chatModel.chatId.value == null) 0f else 1f) }
     val scope = rememberCoroutineScope()
-    val settle = spring<Float>(dampingRatio = 1f, stiffness = 420f)
+    val settle = VibeSprings.page<Float>()
     var cancelledOpen by remember { mutableStateOf<String?>(null) }
     val onComposed: suspend (chatId: String?) -> Unit = { chatId ->
       if (!VibeNav.dragging.value) {
@@ -431,6 +431,7 @@ private fun VibeAndroidScreen(userPickerState: MutableStateFlow<AnimatedViewStat
             val commit = v < -500f || (progress.value > 0.35f && v < 500f)
             scope.launch {
               if (commit) {
+                VibeHaptics.light()
                 progress.animateTo(1f, settle, initialVelocity = -v / widthPx)
               } else {
                 progress.animateTo(0f, settle, initialVelocity = -v / widthPx)
@@ -468,6 +469,7 @@ private fun VibeAndroidScreen(userPickerState: MutableStateFlow<AnimatedViewStat
             val close = if (kotlin.math.abs(v) >= widthPx) v > 0 else progress.value < 0.5f
             scope.launch {
               if (close) {
+                VibeHaptics.light()
                 progress.animateTo(0f, settle, initialVelocity = -v / widthPx)
                 VibeNav.dragging.value = false
                 closeChat()

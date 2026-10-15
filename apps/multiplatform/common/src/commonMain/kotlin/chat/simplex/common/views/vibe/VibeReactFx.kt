@@ -36,6 +36,7 @@ object VibeReactFx {
   private var lastHeart = 0L
 
   fun heart(origin: Offset, target: Offset) {
+    VibeHaptics.medium()
     lastHeart = System.currentTimeMillis()
     if (list.size > 4) list.removeAt(0)
     list.add(Heart(next++, origin, target))
@@ -47,6 +48,7 @@ object VibeReactFx {
   }
 
   fun reaction(emoji: String, rect: Rect) {
+    VibeHaptics.light()
     if (list.size > 4) list.removeAt(0)
     val origin = Offset(rect.left + rect.width * 0.5f, rect.top + rect.height * 0.4f)
     val target = Offset(rect.left + 86f * density, rect.bottom - 20f * density)

@@ -961,7 +961,8 @@ private fun GroupChatInfoHeader(cInfo: ChatInfo, groupInfo: GroupInfo) {
     Modifier.padding(horizontal = DEFAULT_PADDING),
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
-    ChatInfoImage(cInfo, size = 192.dp, iconColor = if (isInDarkTheme()) GroupDark else SettingsSecondaryLight)
+    if (chat.simplex.common.views.vibe.vibeStyle) chat.simplex.common.views.vibe.VibeInfoBleedHeader(groupInfo.displayName, cInfo.image, DEFAULT_PADDING)
+    else ChatInfoImage(cInfo, size = 192.dp, iconColor = if (isInDarkTheme()) GroupDark else SettingsSecondaryLight)
     val clipboard = LocalClipboardManager.current
     val copyNameToClipboard = fun(name: String) {
       clipboard.setText(AnnotatedString(name))

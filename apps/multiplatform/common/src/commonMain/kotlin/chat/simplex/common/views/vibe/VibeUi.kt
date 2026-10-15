@@ -41,6 +41,10 @@ object VibeColors {
   @Composable fun ownName() = if (isDark()) Color(0xFFB5BAC1) else Color(0xFF4E5058)
   @Composable fun otherName() = if (isDark()) Color(0xFFF2F3F5) else Color(0xFF060607)
 
+  /** Matte grey behind people without a picture. */
+  @Composable fun matte() = if (isDark()) Color(0xFF4A4B52) else Color(0xFFC4C7CE)
+  @Composable fun onMatte() = if (isDark()) Color(0xFFE3E5E8) else Color.White
+
   @Composable fun isDark() = !androidx.compose.material.MaterialTheme.colors.isLight
 }
 
@@ -63,10 +67,10 @@ fun VibeAvatar(image: String?, name: String, size: Dp, modifier: Modifier = Modi
     if (bitmap != null) {
       Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
     } else {
-      Box(Modifier.fillMaxSize().background(vibeNameColor(name)), contentAlignment = Alignment.Center) {
+      Box(Modifier.fillMaxSize().background(VibeColors.matte()), contentAlignment = Alignment.Center) {
         val letter = name.trim().firstOrNull()?.uppercase() ?: "?"
         val fs = with(LocalDensity.current) { (size * 0.42f).toSp() }
-        Text(letter, color = Color.White, fontSize = fs, fontWeight = FontWeight.SemiBold)
+        Text(letter, color = VibeColors.onMatte(), fontSize = fs, fontWeight = FontWeight.SemiBold)
       }
     }
   }

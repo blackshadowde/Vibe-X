@@ -34,12 +34,13 @@ fun ChatItem.vibeJustArrived(seconds: Int = 6): Boolean =
  */
 fun Modifier.vibeSweepIn(item: ChatItem): Modifier = composed {
   // your own live message shows only once it's sent, so time it by its last update
-  val fresh = if (item.chatDir.sent) item.id >= 0 && (Clock.System.now() - item.meta.updatedAt).inWholeSeconds in 0L..6L else item.vibeJustArrived()
+  // a live message (or typing dots) becomes the real one when it's sent, so time it by its last update
+  val fresh = item.id >= 0 && (Clock.System.now() - item.meta.updatedAt).inWholeSeconds in -5L..6L
   val animate = remember(item.id) { fresh && VibeSeen.firstTime(item.id) }
   if (!animate) return@composed this
   val p = remember(item.id) { Animatable(0f) }
   LaunchedEffect(item.id) {
-    p.animateTo(1f, spring(dampingRatio = 0.68f, stiffness = 260f))
+    p.animateTo(1f, VibeSprings.message())
   }
   val density = LocalDensity.current
   val rise = with(density) { 64.dp.toPx() }

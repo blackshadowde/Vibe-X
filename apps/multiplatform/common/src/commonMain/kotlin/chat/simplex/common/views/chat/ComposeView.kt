@@ -1134,13 +1134,17 @@ fun ComposeView(
     return acc
   }
 
+  // Vibe X: with live typing off, the other side sees typing dots instead of your words (no words are sent)
+  fun vibeTypingDots(): Boolean = vibeStyle && !chatModel.controller.appPrefs.vibeLiveTyping.get()
+
   suspend fun sendLiveMessage() {
     val cs = composeState.value
     val typedMsg = cs.message.text
     if ((cs.sendEnabled() || cs.contextItem is ComposeContextItem.QuotedItem) && (cs.liveMessage == null || !cs.liveMessage.sent)) {
-      val ci = sendMessageAsync(typedMsg, live = true, ttl = null)
+      val firstSent = if (vibeTypingDots()) VIBE_TYPING else typedMsg
+      val ci = sendMessageAsync(firstSent, live = true, ttl = null)
       if (!ci.isNullOrEmpty()) {
-        composeState.value = composeState.value.copy(liveMessage = LiveMessage(ci.last(), typedMsg = typedMsg, sentMsg = typedMsg, sent = true))
+        composeState.value = composeState.value.copy(liveMessage = LiveMessage(ci.last(), typedMsg = typedMsg, sentMsg = firstSent, sent = true))
       }
     } else if (cs.liveMessage == null) {
       val cItem = chatModel.addLiveDummy(chat.chatInfo)
@@ -1157,7 +1161,11 @@ fun ComposeView(
     val typedMsg = composeState.value.message
     val liveMessage = composeState.value.liveMessage
     if (liveMessage != null) {
-      val sentMsg = liveMessageToSend(liveMessage, typedMsg.text)
+      val sentMsg = if (vibeTypingDots()) {
+        // all words deleted: the dots go away too, as the words would
+        val want = if (typedMsg.text.isBlank()) "" else VIBE_TYPING
+        if (liveMessage.sentMsg != want) want else null
+      } else liveMessageToSend(liveMessage, typedMsg.text)
       if (sentMsg != null) {
         val ci = sendMessageAsync(sentMsg, live = true, ttl = null)
         if (!ci.isNullOrEmpty()) {
@@ -1503,7 +1511,7 @@ fun ComposeView(
         resetLinkPreview()
       },
       sendLiveMessage = if (chat.chatInfo.chatType != ChatType.Local) ::sendLiveMessage else null,
-      autoLive = vibeStyle && chat.chatInfo.chatType != ChatType.Local && chatModel.controller.appPrefs.vibeLiveTyping.state.value,
+      autoLive = vibeStyle && chat.chatInfo.chatType != ChatType.Local,
       sendWithEffect = if (!vibeStyle) null else { effect: VibeEffect ->
         val cs = composeState.value
         if (cs.message.text.isNotBlank()) {

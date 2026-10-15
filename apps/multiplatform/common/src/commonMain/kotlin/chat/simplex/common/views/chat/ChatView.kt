@@ -2503,6 +2503,8 @@ fun BoxScope.ChatItemsList(
         CompositionLocalProvider(LocalItemContext provides ItemContext(selectionIndex = index)) {
           if (vibeStyle && item.vibeHidden()) {
             if (itemSeparation.date != null) VibeDateDivider(itemSeparation.date)
+          } else if (vibeStyle && item.vibeTypingDots()) {
+            VibeTypingRow(chatInfo, item)
           } else
           ChatViewListItem(index == 0, rememberUpdatedState(range), showAvatar, item, itemSeparation, prevItemSeparationLargeGap, isRevealed, vibeHeader, vibeLast, vibeStyle && vibeNewMarker.value == item.id) {
             if (merged is MergedItem.Grouped) merged.reveal(it, revealedItems)

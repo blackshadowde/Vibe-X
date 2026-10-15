@@ -31,18 +31,22 @@ object VibeSendOptions {
         )
         if (sendWithEffect != null) {
           Text("Send with effect", Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 10.dp), fontSize = 15.sp, color = VibeColors.onVariant())
-          Row(
-            Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard()).padding(vertical = 10.dp, horizontal = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+          Column(
+            Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(vibeCard()).padding(vertical = 10.dp, horizontal = 6.dp)
           ) {
-            for ((i, e) in VibeEffect.entries.withIndex()) {
-              Column(
-                Modifier.vibePopIn(i).clip(RoundedCornerShape(16.dp)).clickable { close(); sendWithEffect(e) }.padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-              ) {
-                VibeAnimatedEmoji(e.emoji, 40.dp)
-                Spacer(Modifier.height(6.dp))
-                Text(e.label, fontSize = 12.sp, color = VibeColors.onVariant())
+            for ((row, effects) in VibeEffect.picker.chunked(4).withIndex()) {
+              Row(Modifier.fillMaxWidth()) {
+                for ((j, e) in effects.withIndex()) {
+                  Column(
+                    Modifier.weight(1f).vibePopIn(row * 4 + j).clip(RoundedCornerShape(16.dp)).clickable { close(); sendWithEffect(e) }.padding(vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                  ) {
+                    VibeAnimatedEmoji(e.emoji, 40.dp)
+                    Spacer(Modifier.height(6.dp))
+                    Text(e.label, fontSize = 12.sp, color = VibeColors.onVariant())
+                  }
+                }
+                repeat(4 - effects.size) { Spacer(Modifier.weight(1f)) }
               }
             }
           }

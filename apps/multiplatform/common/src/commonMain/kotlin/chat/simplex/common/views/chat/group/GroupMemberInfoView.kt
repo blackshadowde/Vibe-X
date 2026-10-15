@@ -729,7 +729,8 @@ fun GroupMemberInfoHeader(member: GroupMember) {
     Modifier.padding(horizontal = 16.dp),
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
-    MemberProfileImage(size = 192.dp, member, color = if (isInDarkTheme()) GroupDark else SettingsSecondaryLight)
+    if (chat.simplex.common.views.vibe.vibeStyle) chat.simplex.common.views.vibe.VibeInfoBleedHeader(member.displayName, member.image, 16.dp)
+    else MemberProfileImage(size = 192.dp, member, color = if (isInDarkTheme()) GroupDark else SettingsSecondaryLight)
     val displayName = member.displayName.trim() // alias if set
     val badge = member.nameBadge
     val text = buildAnnotatedString {

@@ -3621,6 +3621,8 @@ object ChatController {
       }
       if (createdChat) {
         notify()
+      } else if (chat.simplex.common.views.vibe.VibeTypingNtf.released(cItem)) {
+        notify()
       } else if (cItem.content is CIContent.RcvCall && cItem.content.status == CICallStatus.Missed) {
         notify()
       }

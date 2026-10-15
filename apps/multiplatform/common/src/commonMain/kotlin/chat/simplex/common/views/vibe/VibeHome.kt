@@ -88,7 +88,7 @@ fun VibeHome(userPickerState: MutableStateFlow<AnimatedViewState>, stopped: Bool
         AnimatedContent(
           targetState = selectedChat?.id,
           transitionSpec = {
-            (fadeIn(tween(220)) + slideInHorizontally(tween(260)) { it / 12 }) togetherWith fadeOut(tween(160))
+            (fadeIn(VibeSprings.page()) + slideInHorizontally(VibeSprings.page()) { it / 12 }) togetherWith fadeOut(tween(160))
           },
           label = "vibe-pane",
         ) { id ->
@@ -175,8 +175,8 @@ private fun VibeRailItem(chat: Chat) {
   val showMenu = remember { mutableStateOf(false) }
   val inProgress = remember { mutableStateOf(false) }
   val railScope = rememberCoroutineScope()
-  val pill by animateDpAsState(if (active) 30.dp else if (unread > 0) 8.dp else 0.dp, tween(260, easing = FastOutSlowInEasing), label = "pill")
-  val radius by animateDpAsState(if (active) 12.dp else 15.dp, tween(280, easing = FastOutSlowInEasing), label = "radius")
+  val pill by animateDpAsState(if (active) 30.dp else if (unread > 0) 8.dp else 0.dp, VibeSprings.pop(), label = "pill")
+  val radius by animateDpAsState(if (active) 12.dp else 15.dp, VibeSprings.pop(), label = "radius")
   val ring by animateColorAsState(if (active) VibeColors.blurple else Color.Transparent, tween(280), label = "ring")
   val press = remember { MutableInteractionSource() }
   val pressed by press.collectIsPressedAsState()
@@ -317,7 +317,7 @@ private fun Stagger(index: Int, content: @Composable () -> Unit) {
   val p = remember { Animatable(0f) }
   LaunchedEffect(Unit) {
     delay((index.coerceAtMost(12) * 25).toLong())
-    p.animateTo(1f, tween(320, easing = FastOutSlowInEasing))
+    p.animateTo(1f, VibeSprings.page())
   }
   Box(Modifier.graphicsLayer { alpha = p.value; translationY = (1f - p.value) * 24f }) { content() }
 }

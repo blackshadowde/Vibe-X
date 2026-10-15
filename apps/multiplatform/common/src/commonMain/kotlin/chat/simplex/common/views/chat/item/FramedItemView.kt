@@ -444,6 +444,7 @@ fun CIMarkdownText(
           onTextLayoutResult = selection.onTextLayoutResult
         )
       }
+      VibeEffect.of(ci.content.text)?.let { VibeEffectBadge(it) }
       VibeTicks(ci, Modifier.padding(start = 6.dp, bottom = 3.dp))
     }
     return

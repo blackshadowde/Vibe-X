@@ -10,6 +10,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -96,9 +99,7 @@ private fun BleedHeader(name: String, image: String?, height: Dp, onBack: () -> 
     if (bitmap != null) {
       Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
     } else {
-      Box(Modifier.fillMaxSize().background(vibeNameColor(name).copy(alpha = 0.85f)), contentAlignment = Alignment.Center) {
-        Text(name.trim().take(1).uppercase().ifEmpty { "@" }, fontSize = 96.sp, fontWeight = FontWeight.Bold, color = Color.White)
-      }
+      VibeMattePicture(name)
     }
     Box(
       Modifier.fillMaxSize().background(
@@ -312,4 +313,66 @@ private fun CircleButton(icon: ImageVector, modifier: Modifier, onClick: () -> U
   ) {
     Icon(icon, null, Modifier.size(21.dp), tint = Color.White)
   }
+}
+
+/** A person (or group) without a picture: matte grey with a soft light and their letter. */
+@Composable
+fun VibeMattePicture(name: String, modifier: Modifier = Modifier) {
+  val matte = VibeColors.matte()
+  Box(
+    modifier.fillMaxSize().background(matte).background(
+      Brush.radialGradient(listOf(Color.White.copy(alpha = if (VibeColors.isDark()) 0.07f else 0.22f), Color.Transparent))
+    ),
+    contentAlignment = Alignment.Center
+  ) {
+    Text(name.trim().take(1).uppercase().ifEmpty { "@" }, fontSize = 96.sp, fontWeight = FontWeight.Bold, color = VibeColors.onMatte())
+  }
+}
+
+/** How far the content of an info page starts below the top of the screen (status bar + top bar). */
+@Composable
+fun vibeInfoTopInset(): Dp {
+  val status = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+  return if (appPreferences.oneHandUI.state.value) status + chat.simplex.common.ui.theme.DEFAULT_PADDING + 5.dp
+  else status + chat.simplex.common.views.helpers.AppBarHeight * chat.simplex.common.views.helpers.fontSizeSqrtMultiplier
+}
+
+/** Stretches the element up by [top] and sideways by [horizontal], out of its parent's padding. */
+fun Modifier.vibeBleed(top: Dp, horizontal: Dp): Modifier = this.then(
+  Modifier.layout { measurable, constraints ->
+    val t = top.roundToPx()
+    val hz = horizontal.roundToPx()
+    val wide = if (constraints.hasBoundedWidth) constraints.copy(minWidth = constraints.maxWidth + 2 * hz, maxWidth = constraints.maxWidth + 2 * hz) else constraints
+    val p = measurable.measure(wide)
+    layout(constraints.constrainWidth(p.width - 2 * hz), maxOf(0, p.height - t)) { p.place(-hz, -t) }
+  }
+)
+
+/**
+ * The picture at the top of an info page, as in Vibe: full width, behind the
+ * status bar and the top bar, fading into the page. People without a
+ * picture get matte grey with their letter.
+ */
+@Composable
+fun VibeInfoBleedHeader(name: String, image: String?, sidePadding: Dp, height: Dp = 260.dp) {
+  val top = vibeInfoTopInset()
+  val bg = androidx.compose.material.MaterialTheme.colors.background
+  val bitmap = remember(image) { image?.let { runCatching { base64ToBitmap(it) }.getOrNull() } }
+  val enter = remember { androidx.compose.animation.core.Animatable(1.08f) }
+  LaunchedEffect(Unit) { enter.animateTo(1f, VibeSprings.of(0.7f, 1f)) }
+  Box(
+    Modifier
+      .fillMaxWidth()
+      .vibeBleed(top, sidePadding)
+      .height(height + top)
+      .clipToBounds()
+  ) {
+    Box(Modifier.fillMaxSize().graphicsLayer { scaleX = enter.value; scaleY = enter.value }) {
+      if (bitmap != null) Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+      else VibeMattePicture(name)
+    }
+    // keeps the back arrow readable, and fades the picture into the page
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.35f), 0.22f to Color.Transparent, 0.6f to Color.Transparent, 1f to bg)))
+  }
+  Spacer(Modifier.height(12.dp))
 }

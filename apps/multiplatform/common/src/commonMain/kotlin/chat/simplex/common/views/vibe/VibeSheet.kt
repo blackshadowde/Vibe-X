@@ -66,7 +66,7 @@ object VibeSheets {
   }
 }
 
-private val openSpec = spring<Float>(dampingRatio = 1f, stiffness = 380f)
+private val openSpec = VibeSprings.sheet<Float>()
 private val closeSpec = tween<Float>(220, easing = CubicBezierEasing(0.32f, 0f, 0.67f, 0f))
 
 @Composable
@@ -106,7 +106,7 @@ private fun SheetView(e: VibeSheets.Entry) {
         // carry the flick into the close
         e.closing.value = true
       } else {
-        drag.animateTo(0f, spring(dampingRatio = 1f, stiffness = 420f), initialVelocity = velocity)
+        drag.animateTo(0f, VibeSprings.of(0.36f, 0.82f), initialVelocity = velocity)
       }
     }
   }
@@ -190,7 +190,11 @@ private fun SheetView(e: VibeSheets.Entry) {
 /** Light haptic tick, unless haptics are turned off in Change your style. */
 @Composable
 fun rememberVibeHaptic(): (androidx.compose.ui.hapticfeedback.HapticFeedbackType) -> Unit {
-  val h = androidx.compose.ui.platform.LocalHapticFeedback.current
-  val on = chat.simplex.common.platform.appPreferences.vibeHaptics.state.value
-  return { type -> if (on) h.performHapticFeedback(type) }
+  return { type ->
+    when (type) {
+      androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress -> VibeHaptics.medium()
+      androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove -> VibeHaptics.selection()
+      else -> VibeHaptics.light()
+    }
+  }
 }

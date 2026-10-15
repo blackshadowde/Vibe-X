@@ -47,6 +47,7 @@ private val red = Color(0xFFF87171)
 /** Long-press a message: quick reactions, the message, then the actions. Slides up from the bottom. */
 object VibeMessageMenu {
   fun show(a: VibeMsgActions) {
+    VibeHaptics.medium()
     VibeSheets.show(background = { VibeColors.high() }, corner = 32.dp) { close -> Menu(a, close) }
   }
 }

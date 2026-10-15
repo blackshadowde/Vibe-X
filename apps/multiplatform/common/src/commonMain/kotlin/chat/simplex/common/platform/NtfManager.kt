@@ -36,6 +36,8 @@ abstract class NtfManager {
   )
 
   fun notifyMessageReceived(rhId: Long?, user: UserLike, cInfo: ChatInfo, cItem: ChatItem) {
+    // Vibe X typing dots carry no words: notify when the real message replaces them
+    if (chat.simplex.common.views.vibe.VibeTypingNtf.hold(cItem)) return
     if (
       cItem.showNotification &&
       cInfo.ntfsEnabled(cItem) &&

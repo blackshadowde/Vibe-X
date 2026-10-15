@@ -213,13 +213,13 @@ fun Modifier.vibeSwipeReply(enabled: Boolean, onReply: () -> Unit): Modifier = c
           val fire = armed
           armed = false
           scope.launch {
-            dx.animateTo(0f, tween(200, easing = FastOutSlowInEasing))
+            dx.animateTo(0f, VibeSprings.of(0.38f, 0.72f))
           }
           if (fire) scope.launch { delay(140); reply() }
         },
         onDragCancel = {
           armed = false
-          scope.launch { dx.animateTo(0f, tween(200)) }
+          scope.launch { dx.animateTo(0f, VibeSprings.of(0.38f, 0.72f)) }
         },
         onHorizontalDrag = { change, amount ->
           var next = dx.value + amount
@@ -228,7 +228,7 @@ fun Modifier.vibeSwipeReply(enabled: Boolean, onReply: () -> Unit): Modifier = c
           next = next.coerceIn(-maxDrag, 0f)
           if (next != dx.value) change.consume()
           val now = next <= -threshold
-          if (now && !armed) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+          if (now && !armed) VibeHaptics.medium()
           armed = now
           scope.launch { dx.snapTo(next) }
         }
@@ -314,8 +314,9 @@ fun VibeLiveToggle() {
   Box(
     Modifier.size(40.dp).clip(CircleShape).clickable {
       pref.set(!on)
+      VibeHaptics.medium()
       scope.launch { scale.snapTo(1.3f); scale.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 500f)) }
-      chat.simplex.common.platform.showToast(if (!on) "Live typing on: they see your words as you type" else "Live typing off")
+      chat.simplex.common.platform.showToast(if (!on) "Live typing on: they see your words as you type" else "Live typing off: they see typing dots")
     },
     contentAlignment = Alignment.Center
   ) {

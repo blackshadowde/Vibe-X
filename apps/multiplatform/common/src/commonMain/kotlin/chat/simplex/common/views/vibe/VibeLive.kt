@@ -124,3 +124,50 @@ private fun LiveDots(color: Color) {
     }
   }
 }
+
+/**
+ * What a live message carries while its sender has live typing off: no
+ * words, just "typing". Vibe X shows it as typing dots; the real message
+ * replaces it when they send.
+ */
+const val VIBE_TYPING = "\u2060\u2063\u2060"
+
+/** Someone is typing with live typing off: show dots, not a message. */
+fun chat.simplex.common.model.ChatItem.vibeTypingDots(): Boolean =
+  meta.isLive && !chatDir.sent && content.text == VIBE_TYPING
+
+/** Three dots bouncing one after another (1.2 s cycle), as in Vibe. White in dark mode, black in light. */
+@Composable
+fun VibeTypingDots(modifier: Modifier = Modifier) {
+  val inf = rememberInfiniteTransition(label = "typingDots")
+  val t by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1200, easing = LinearEasing)), label = "t")
+  val color = if (VibeColors.isDark()) Color.White else Color.Black
+  androidx.compose.foundation.Canvas(modifier.size(24.dp, 16.dp)) {
+    val r = 3.dp.toPx()
+    val cy = size.height / 2 + 2.dp.toPx()
+    for (i in 0..2) {
+      val phase = t * Math.PI.toFloat() * 2 - i * 0.7f
+      val bounce = max(0f, kotlin.math.sin(phase))
+      drawCircle(color.copy(alpha = (150 + 105 * bounce) / 255f), r, androidx.compose.ui.geometry.Offset(r + i * 9.dp.toPx(), cy - bounce * 4.dp.toPx()))
+    }
+  }
+}
+
+/** Notifications for typing dots wait for the message that replaces them. */
+object VibeTypingNtf {
+  private val held = HashSet<Long>()
+
+  /** True for typing dots: don't notify yet. */
+  fun hold(item: chat.simplex.common.model.ChatItem): Boolean {
+    if (!item.vibeTypingDots()) return false
+    synchronized(held) { held.add(item.id) }
+    return true
+  }
+
+  /** True once held dots became a real message with words. */
+  fun released(item: chat.simplex.common.model.ChatItem): Boolean {
+    if (item.content.text == VIBE_TYPING || item.content.text.isBlank()) return false
+    val was = synchronized(held) { held.remove(item.id) }
+    return was
+  }
+}

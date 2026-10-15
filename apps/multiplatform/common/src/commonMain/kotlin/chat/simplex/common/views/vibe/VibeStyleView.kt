@@ -45,7 +45,8 @@ fun vibeMessageTextSize() = appPreferences.vibeTextSize.state.value.coerceIn(VIB
 @Composable
 fun VibeStyleView() {
   val muted = VibeColors.onVariant()
-  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+  // keeps clear of the top bar and the status bar, like every settings page
+  chat.simplex.common.platform.ColumnWithScrollBar {
     Text(
       "Change your style", Modifier.padding(start = 20.dp, top = 8.dp, bottom = 16.dp),
       fontSize = 28.sp, color = VibeColors.onSurface()
@@ -87,7 +88,11 @@ fun VibeStyleView() {
         Text("A", fontSize = 13.sp, color = VibeColors.onSurface())
         Slider(
           value = size.toFloat(),
-          onValueChange = { appPreferences.vibeTextSize.set(it.roundToInt().coerceIn(VIBE_TEXT_MIN, VIBE_TEXT_MAX)) },
+          onValueChange = {
+            val v = it.roundToInt().coerceIn(VIBE_TEXT_MIN, VIBE_TEXT_MAX)
+            if (v != appPreferences.vibeTextSize.get()) VibeHaptics.selection()
+            appPreferences.vibeTextSize.set(v)
+          },
           valueRange = VIBE_TEXT_MIN.toFloat()..VIBE_TEXT_MAX.toFloat(),
           steps = VIBE_TEXT_MAX - VIBE_TEXT_MIN - 1,
           modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
@@ -111,7 +116,7 @@ fun VibeStyleView() {
         }
         Switch(
           checked = haptics,
-          onCheckedChange = { appPreferences.vibeHaptics.set(it) },
+          onCheckedChange = { appPreferences.vibeHaptics.set(it); VibeHaptics.medium() },
           colors = SwitchDefaults.colors(
             checkedThumbColor = Color.White, checkedTrackColor = VibeColors.blurple, checkedTrackAlpha = 1f,
             uncheckedThumbColor = if (VibeColors.isDark()) Color(0xFFDBDEE1) else Color(0xFF80848E),
@@ -120,6 +125,7 @@ fun VibeStyleView() {
         )
       }
     }
+    Spacer(Modifier.height(24.dp))
   }
 }
 

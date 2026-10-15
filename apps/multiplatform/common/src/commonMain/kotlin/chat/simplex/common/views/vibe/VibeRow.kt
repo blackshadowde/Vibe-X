@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
@@ -47,7 +48,7 @@ private fun ChatItem.senderKey(): String = when (val d = chatDir) {
 
 /** Starts a new block (shows the avatar and name): new sender, a pause, or a non-message in between. */
 fun vibeStartsBlock(item: ChatItem, older: ChatItem?): Boolean {
-  if (older == null || !older.isVibeRow()) return true
+  if (older == null || !older.isVibeRow() || older.vibeHidden() || older.vibeTypingDots()) return true
   if (older.senderKey() != item.senderKey()) return true
   if ((item.meta.itemTs - older.meta.itemTs).inWholeSeconds >= VIBE_HEADER_GAP_SECONDS) return true
   val tz = TimeZone.currentSystemDefault()
@@ -168,7 +169,7 @@ fun VibeNewDivider() {
 
 /** Ends a block (bottom padding): the newer message starts a new one. */
 fun vibeEndsBlock(item: ChatItem, newer: ChatItem?): Boolean =
-  newer == null || !newer.isVibeRow() || newer.quotedItem != null || vibeStartsBlock(newer, item)
+  newer == null || !newer.isVibeRow() || newer.vibeHidden() || newer.vibeTypingDots() || newer.quotedItem != null || vibeStartsBlock(newer, item)
 
 /** Items Vibe doesn't show (the intro at the top says it once). */
 fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLiveDummy)) || (meta.isLive && content.text.isBlank())) true else when (content) {
@@ -177,4 +178,30 @@ fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLive
   is CIContent.RcvChatFeature, is CIContent.SndChatFeature,
   is CIContent.RcvGroupFeature, is CIContent.SndGroupFeature -> true
   else -> false
+}
+
+/**
+ * Someone typing with live typing off, as in Vibe: their small picture and
+ * three bouncing dots at the bottom of the timeline, no bubble. Rises and
+ * fades into place.
+ */
+@Composable
+fun VibeTypingRow(chatInfo: ChatInfo, item: ChatItem) {
+  val (name, image) = senderName(chatInfo, item)
+  val p = remember { androidx.compose.animation.core.Animatable(0f) }
+  LaunchedEffect(Unit) { p.animateTo(1f, VibeSprings.pop()) }
+  Row(
+    Modifier
+      .fillMaxWidth()
+      .padding(start = 16.dp, top = 8.dp, bottom = 6.dp)
+      .graphicsLayer {
+        alpha = p.value.coerceIn(0f, 1f)
+        translationY = (1f - p.value) * 10.dp.toPx()
+      },
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    VibeAvatar(image, name, 20.dp)
+    Spacer(Modifier.width(8.dp))
+    VibeTypingDots()
+  }
 }

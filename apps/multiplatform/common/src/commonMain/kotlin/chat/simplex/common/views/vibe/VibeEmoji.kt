@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import chat.simplex.common.model.ChatItem
 import chat.simplex.common.ui.theme.EmojiFont
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 private enum class Motion { Beat, Shake, Flicker, Wave, Bounce, Nod, Sink, Pulse, Rocket, Float }
 
@@ -53,11 +54,15 @@ fun VibeBigEmoji(item: ChatItem) {
   val fresh = remember(item.id) { pop.value == 0f }
   LaunchedEffect(item.id) {
     if (fresh) {
-      pop.animateTo(1f, spring(dampingRatio = 0.42f, stiffness = 220f))
+      pop.animateTo(1f, VibeSprings.of(0.55f, 0.5f))
     }
   }
-  LaunchedEffect(item.id, bounds) {
-    if (fresh && bounds != Offset.Zero) VibeBurst.fire(firstGlyph(text), bounds, big = true)
+  // the burst plays once, when it has arrived (not again when the list moves it)
+  LaunchedEffect(item.id) {
+    if (!fresh) return@LaunchedEffect
+    kotlinx.coroutines.delay(420)
+    val at = snapshotFlow { bounds }.first { it != Offset.Zero }
+    VibeBurst.fire(firstGlyph(text), at, big = true)
   }
   val inf = rememberInfiniteTransition(label = "emoji")
   val phase by inf.animateFloat(
@@ -87,7 +92,7 @@ fun VibeBigEmoji(item: ChatItem) {
       .clickable(remember { MutableInteractionSource() }, indication = null) {
         scope.launch {
           pop.snapTo(0.55f)
-          pop.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = 300f))
+          pop.animateTo(1f, VibeSprings.of(0.45f, 0.4f))
         }
         VibeBurst.fire(firstGlyph(text), bounds, big = true)
       }
