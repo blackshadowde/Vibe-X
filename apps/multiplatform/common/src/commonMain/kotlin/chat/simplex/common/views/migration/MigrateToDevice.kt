@@ -736,7 +736,7 @@ private fun fileForTemporaryDatabase(): File =
 private fun archivePath(): String {
   val archiveTime = Clock.System.now()
   val ts = SimpleDateFormat("yyyy-MM-dd'T'HHmmss", Locale.US).format(Date.from(archiveTime.toJavaInstant()))
-  val archiveName = "simplex-chat.$ts.zip"
+  val archiveName = "vibe-x-backup.$ts.zip"
   val archivePath = File(getMigrationTempFilesDirectory(), archiveName)
   return archivePath.absolutePath
 }
