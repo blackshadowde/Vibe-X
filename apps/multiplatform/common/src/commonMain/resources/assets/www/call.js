@@ -157,6 +157,7 @@ const processCommand = (function () {
         const remoteStream = new MediaStream();
         const remoteScreenStream = new MediaStream();
         const localCamera = (_b = notConnectedCall === null || notConnectedCall === void 0 ? void 0 : notConnectedCall.localCamera) !== null && _b !== void 0 ? _b : VideoCamera.User;
+        vibeMirrorLocal(localCamera);
         let localStream;
         try {
             localStream = (notConnectedCall === null || notConnectedCall === void 0 ? void 0 : notConnectedCall.localStream)
@@ -319,6 +320,7 @@ const processCommand = (function () {
                     inactiveCallMediaSources.mic = localStream != null && localStream.getAudioTracks().length > 0;
                     inactiveCallMediaSources.camera = localStream != null && localStream.getVideoTracks().length > 0;
                     inactiveCallMediaSourcesChanged(inactiveCallMediaSources);
+                    vibeMirrorLocal(VideoCamera.User);
                     notConnectedCall = {
                         localCamera: VideoCamera.User,
                         localStream: localStream,
@@ -863,6 +865,7 @@ const processCommand = (function () {
             localStream.removeTrack(t);
         }
         call.localCamera = camera;
+        vibeMirrorLocal(camera);
         const audioTracks = call.localStream.getAudioTracks();
         const videoTracks = call.localStream.getVideoTracks();
         replaceTracks(pc, CallMediaSource.Mic, audioTracks);
@@ -1297,6 +1300,14 @@ function changeLayout(layout) {
     if (!isDesktop && !localSources.camera) {
         resetLocalVideoElementHeight(videos.local);
     }
+}
+// Vibe X: your own front-camera preview is shown like a mirror (as in every
+// other video calling app). Only the preview: the video sent to the other
+// person stays the right way round.
+function vibeMirrorLocal(camera) {
+    const local = document.getElementById("local-video-stream");
+    if (local)
+        local.style.transform = camera === VideoCamera.Environment ? "" : "scaleX(-1)";
 }
 function getVideoElements() {
     const local = document.getElementById("local-video-stream");

@@ -439,6 +439,7 @@ const processCommand = (function () {
     const remoteStream = new MediaStream()
     const remoteScreenStream = new MediaStream()
     const localCamera = notConnectedCall?.localCamera ?? VideoCamera.User
+    vibeMirrorLocal(localCamera)
     let localStream: MediaStream
     try {
       localStream = notConnectedCall?.localStream
@@ -1164,6 +1165,7 @@ const processCommand = (function () {
       localStream.removeTrack(t)
     }
     call.localCamera = camera
+    vibeMirrorLocal(camera)
 
     const audioTracks = call.localStream.getAudioTracks()
     const videoTracks = call.localStream.getVideoTracks()
@@ -1626,6 +1628,13 @@ function changeLayout(layout: LayoutType) {
   if (!isDesktop && !localSources.camera) {
     resetLocalVideoElementHeight(videos.local)
   }
+}
+
+// Vibe X: your own front-camera preview is shown like a mirror (as in every
+// other video calling app). Only the preview: the video sent stays the right way round.
+function vibeMirrorLocal(camera: VideoCamera) {
+  const local = document.getElementById("local-video-stream")
+  if (local) local.style.transform = camera === VideoCamera.Environment ? "" : "scaleX(-1)"
 }
 
 function getVideoElements(): VideoElements | undefined {
