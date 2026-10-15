@@ -1,5 +1,7 @@
 package chat.simplex.common.views.vibe
 
+import androidx.compose.ui.unit.constrainWidth
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
