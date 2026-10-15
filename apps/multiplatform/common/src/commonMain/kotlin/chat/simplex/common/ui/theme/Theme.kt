@@ -660,48 +660,50 @@ val DEFAULT_MIN_CENTER_MODAL_WIDTH = 590.dp
 val DEFAULT_END_MODAL_WIDTH = 388.dp
 val DEFAULT_MAX_IMAGE_WIDTH = 500.dp
 
+// Vibe X: the Vibe (Discord-style) palette for the default light and dark
+// themes. The SimpleX and Black themes stay as they are.
+val VibeBlurple = Color(0xFF5865F2)
+
 val DarkColorPalette = darkColors(
-  primary = SimplexBlue,  // If this value changes also need to update #0088ff in string resource files
-  primaryVariant = SimplexBlue,
-  secondary = HighOrLowlight,
-  secondaryVariant = DarkGray,
-//  background = Color.Black,
-  surface = Color(0xFF222222),
-//  background = Color(0xFF121212),
-  error = Color.Red,
-  onBackground = Color(0xFFFFFBFA),
-  onSurface = Color(0xFFFFFBFA),
-//  onError: Color = Color.Black,
+  primary = VibeBlurple,
+  primaryVariant = Color(0xFF3C45A5),
+  secondary = Color(0xFFB5BAC1),
+  secondaryVariant = Color(0xFF2E2D33),
+  background = Color(0xFF1A191E),
+  surface = Color(0xFF252429),
+  error = Color(0xFFF23F42),
+  onPrimary = Color.White,
+  onBackground = Color(0xFFF2F3F5),
+  onSurface = Color(0xFFF2F3F5),
 )
 val DarkColorPaletteApp = AppColors(
-  title = SimplexBlue,
-  primaryVariant2 = Color(0xFF18262E),
-  sentMessage = Color(0xFF18262E),
-  sentQuote = Color(0xFF1D3847),
-  receivedMessage = Color(0xff262627),
-  receivedQuote = Color(0xff373739),
+  title = VibeBlurple,
+  primaryVariant2 = Color(0xFF2E3157),
+  sentMessage = Color(0xFF2E3157),
+  sentQuote = Color(0xFF3A3F6E),
+  receivedMessage = Color(0xFF29282D),
+  receivedQuote = Color(0xFF323136),
 )
 
 val LightColorPalette = lightColors(
-  primary = SimplexBlue,  // If this value changes also need to update #0088ff in string resource files
-  primaryVariant = SimplexBlue,
-  secondary = HighOrLowlight,
-  secondaryVariant = LightGray,
-  error = Color.Red,
-//  background = Color.White,
-  surface = Color.White,
-//  onPrimary = Color.White,
-//  onSecondary = Color.Black,
-//  onBackground = Color.Black,
-//  onSurface = Color.Black,
+  primary = VibeBlurple,
+  primaryVariant = Color(0xFF3C45A5),
+  secondary = Color(0xFF5C5E66),
+  secondaryVariant = Color(0xFFE3E5E8),
+  background = Color.White,
+  surface = Color(0xFFF2F3F5),
+  error = Color(0xFFD83C3E),
+  onPrimary = Color.White,
+  onBackground = Color(0xFF313338),
+  onSurface = Color(0xFF313338),
 )
 val LightColorPaletteApp = AppColors(
-  title = SimplexBlue,
-  primaryVariant2 = Color(0xFFE9F7FF),
-  sentMessage = Color(0xFFE9F7FF),
-  sentQuote = Color(0xFFD6F0FF),
-  receivedMessage = Color(0xfff5f5f6),
-  receivedQuote = Color(0xffececee),
+  title = VibeBlurple,
+  primaryVariant2 = Color(0xFFE0E3FF),
+  sentMessage = Color(0xFFE0E3FF),
+  sentQuote = Color(0xFFCDD2FF),
+  receivedMessage = Color(0xFFF2F3F5),
+  receivedQuote = Color(0xFFE3E5E8),
 )
 
 val SimplexColorPalette = darkColors(
