@@ -329,6 +329,8 @@ fun VibeAboutView() {
       Spacer(Modifier.height(10.dp))
       OutlineButton("Credits") { VibeCredits.show() }
       Spacer(Modifier.height(10.dp))
+      OutlineButton("❤  Support Vibe X") { VibeSupport.open() }
+      Spacer(Modifier.height(10.dp))
       OutlineButton("How Vibe X keeps you safe") {
         ModalManager.fullscreen.showCustomModal { close -> VibeWelcome(chatModel, onDone = close) }
       }

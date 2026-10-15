@@ -595,7 +595,12 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
   val user = chatModel.currentUser.value ?: return
   val running = chatModel.chatRunning.value
   // a quiet look for a new Vibe X now and then (at most every 6 hours)
-  LaunchedEffect(Unit) { VibeUpdater.maybeCheck() }
+  LaunchedEffect(Unit) {
+    VibeUpdater.maybeCheck()
+    // after the update check, so the two never stack
+    kotlinx.coroutines.delay(4000)
+    VibeSupport.maybeAsk()
+  }
   val status = when (running) {
     true -> "Online"
     false -> "Chat is stopped"

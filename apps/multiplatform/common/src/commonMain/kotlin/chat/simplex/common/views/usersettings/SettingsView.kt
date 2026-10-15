@@ -123,6 +123,7 @@ fun SettingsLayout(
           }
         }
         SettingsActionItem(painterResource(MR.images.ic_info), "About Vibe X", showSettingsModal { chat.simplex.common.views.vibe.VibeAboutView() })
+        SettingsActionItem(painterResource(MR.images.ic_heart), "Support Vibe X", showSettingsModal { chat.simplex.common.views.vibe.VibeSupportView() }, textColor = chat.simplex.common.views.vibe.VibeColors.blurple, iconColor = chat.simplex.common.views.vibe.VibeColors.red)
       }
       SectionDividerSpaced()
     }
