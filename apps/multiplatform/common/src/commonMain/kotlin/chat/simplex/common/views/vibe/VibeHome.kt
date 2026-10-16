@@ -545,7 +545,9 @@ private fun VibeChatPane(chat: Chat) {
     VibeSearchField("", {}, onClick = { VibeRail.selected.value = null })
     Column(Modifier.padding(horizontal = 12.dp)) {
       Spacer(Modifier.height(12.dp))
-      val openProfile: () -> Unit = { if (info is ChatInfo.Direct) VibeProfileSheet.showContact(chat) { openChat() } else openChat() }
+      val openProfile: () -> Unit = {
+        if (info is ChatInfo.Direct) VibeProfileSheet.showContact(chat) { VibeNav.infoFor = chat.id; openChat() } else openChat()
+      }
       VibeChatAvatar(info, 62.dp, Modifier.padding(start = 6.dp).clickable(onClick = openProfile))
       Spacer(Modifier.height(10.dp))
       Text(
@@ -720,7 +722,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
       verticalAlignment = Alignment.CenterVertically,
     ) {
       Column(
-        Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { userPickerState.value = AnimatedViewState.VISIBLE }.padding(vertical = 4.dp),
+        Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { VibeOwnProfile.show() }.padding(vertical = 4.dp),
         verticalArrangement = Arrangement.Center,
       ) {
         Text(user.displayName, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = VibeColors.onSurface())

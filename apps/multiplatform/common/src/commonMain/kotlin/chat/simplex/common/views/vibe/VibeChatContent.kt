@@ -25,6 +25,10 @@ import chat.simplex.common.model.*
 import chat.simplex.common.platform.*
 import chat.simplex.common.views.chatlist.openChat
 import chat.simplex.common.views.helpers.formatBytes
+import chat.simplex.common.views.helpers.ModalManager
+import chat.simplex.common.views.helpers.openUriCatching
+import chat.simplex.common.views.chat.item.ImageFullScreenView
+import chat.simplex.common.views.chat.providerForGallery
 import chat.simplex.common.views.helpers.withBGApi
 import chat.simplex.res.MR
 import dev.icerock.moko.resources.compose.painterResource
@@ -44,6 +48,21 @@ object VibeChatContent {
     VibeSheets.show(maxHeight = 0.85f, background = { vibePage() }) { close -> Sheet(chat, kind, close) }
   }
 
+  /** Photos and videos in the Google Messages style viewer, starting at [itemId]; [items] newest first. */
+  fun openMedia(chat: Chat, items: List<ChatItem>, itemId: Long) {
+    val chronological = items.sortedBy { it.meta.itemTs }
+    ModalManager.fullscreen.showCustomModal(animated = false) { close ->
+      ImageFullScreenView({ providerForGallery(chronological, itemId) {} }, close)
+    }
+  }
+
+  /** Downloads a file that isn't on this phone yet. */
+  fun receive(chat: Chat, fileId: Long) {
+    val user = chatModel.currentUser.value ?: return
+    withBGApi { chatModel.controller.receiveFile(chat.remoteHostId, user, fileId) }
+    showToast(vt("Download"))
+  }
+
   /** Opens the chat at [itemId]. */
   fun openAt(chat: Chat, itemId: Long) {
     withBGApi { openChat(secondaryChatsCtx = null, chat.remoteHostId, chat.chatInfo.chatType, chat.chatInfo.apiId, itemId) }
@@ -53,6 +72,7 @@ object VibeChatContent {
 @Composable
 private fun Sheet(chat: Chat, kind: VibeContentKind, close: () -> Unit) {
   val muted = VibeColors.onVariant()
+  val uri = androidx.compose.ui.platform.LocalUriHandler.current
   var items by remember { mutableStateOf<List<ChatItem>?>(null) }
   LaunchedEffect(kind) {
     if (kind == VibeContentKind.Starred) {
@@ -122,7 +142,13 @@ private fun Sheet(chat: Chat, kind: VibeContentKind, close: () -> Unit) {
           val bitmap = remember(image) { image?.let { runCatching { base64ToBitmap(it) }.getOrNull() } }
           Box(
             Modifier.aspectRatio(1f).clip(RoundedCornerShape(14.dp)).background(VibeColors.highest())
-              .clickable { close(); VibeChatContent.openAt(chat, ci.id) }
+              .clickable {
+                when {
+                  ci.file?.loaded == true -> { close(); VibeChatContent.openMedia(chat, list, ci.id) }
+                  ci.file != null && (ci.file.fileStatus is CIFileStatus.RcvInvitation || ci.file.fileStatus is CIFileStatus.RcvAborted) -> VibeChatContent.receive(chat, ci.file.fileId)
+                  else -> { close(); VibeChatContent.openAt(chat, ci.id) }
+                }
+              }
           ) {
             if (bitmap != null) Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             val mc = ci.content.msgContent
@@ -136,6 +162,20 @@ private fun Sheet(chat: Chat, kind: VibeContentKind, close: () -> Unit) {
           }
         }
       }
+      kind == VibeContentKind.Voice -> LazyColumn(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
+        items(list, key = { it.id }) { ci ->
+          val (sender, _) = vibeSender(chat.chatInfo, ci)
+          val mc = ci.content.msgContent as? MsgContent.MCVoice
+          Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Text(sender, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = VibeColors.onSurface())
+              Spacer(Modifier.width(6.dp))
+              Text(vibeTime(ci.meta.itemTs), fontSize = 12.sp, color = muted)
+            }
+            VibeVoiceNote(mc?.duration ?: 0, ci.file, longClick = { close(); VibeChatContent.openAt(chat, ci.id) }, receiveFile = { VibeChatContent.receive(chat, it) })
+          }
+        }
+      }
       else -> LazyColumn(Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
         items(list, key = { it.id }) { ci ->
           val (sender, _) = vibeSender(chat.chatInfo, ci)
@@ -146,7 +186,21 @@ private fun Sheet(chat: Chat, kind: VibeContentKind, close: () -> Unit) {
             else -> (ci.file?.fileName ?: ci.text) to (ci.file?.fileSize?.let { formatBytes(it) + " · " } ?: "") + sender
           }
           Row(
-            Modifier.fillMaxWidth().clickable { close(); VibeChatContent.openAt(chat, ci.id) }.padding(horizontal = 20.dp, vertical = 10.dp),
+            Modifier.fillMaxWidth().combinedClickable(
+              onClick = {
+                val file = ci.file
+                when {
+                  // a link opens in the browser
+                  mc is MsgContent.MCLink -> uri.openUriCatching(mc.preview.uri)
+                  // a file on this phone opens with an app (share sheet)
+                  file != null && file.loaded -> getLoadedFileSource(file)?.let { shareFile("", it) }
+                  file != null && (file.fileStatus is CIFileStatus.RcvInvitation || file.fileStatus is CIFileStatus.RcvAborted) -> VibeChatContent.receive(chat, file.fileId)
+                  else -> { close(); VibeChatContent.openAt(chat, ci.id) }
+                }
+              },
+              // hold to see it in the chat
+              onLongClick = { close(); VibeChatContent.openAt(chat, ci.id) }
+            ).padding(horizontal = 20.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
           ) {
             Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(VibeColors.highest()), contentAlignment = Alignment.Center) {

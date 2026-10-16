@@ -16,6 +16,9 @@ object VibeNav {
   /** The open chat's own back action (set by the chat screen). */
   var back: (() -> Unit)? = null
 
+  /** Open this chat's info page as soon as the chat opens ("Security and more"). */
+  var infoFor: String? = null
+
   /** The last chat you opened: swiping left on Home brings it back. */
   var lastChatId: String? = null
 

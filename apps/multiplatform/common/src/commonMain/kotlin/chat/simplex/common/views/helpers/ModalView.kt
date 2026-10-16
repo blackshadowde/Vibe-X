@@ -206,9 +206,13 @@ class ModalManager(private val placement: ModalPlacement? = null) {
       }
       return
     }
+    val vibe = chat.simplex.common.views.vibe.vibeStyle
     AnimatedContent(targetState = modalCount.value,
       transitionSpec = {
-        if (targetState > initialState) {
+        if (vibe) {
+          // Vibe X: pages slide up from the bottom and go back down
+          if (targetState > initialState) chat.simplex.common.views.vibe.vibePageUp() else chat.simplex.common.views.vibe.vibePageDown()
+        } else if (targetState > initialState) {
           fromEndToStartTransition()
         } else {
           fromStartToEndTransition()
@@ -217,7 +221,8 @@ class ModalManager(private val placement: ModalPlacement? = null) {
     ) {
       modalViews.getOrNull(it - 1)?.let {
         CompositionLocalProvider(LocalAppBarHandler provides adjustAppBarHandler(it.data.appBarHandler)) {
-          it.modal(it.data, ::closeModal)
+          if (vibe) chat.simplex.common.views.vibe.VibePullDown(::closeModal) { it.modal(it.data, ::closeModal) }
+          else it.modal(it.data, ::closeModal)
         }
       }
       // This is needed because if we delete from modalViews immediately on request, animation will be bad

@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -68,17 +69,21 @@ fun VibeSignalDots(info: ChatInfo) {
   val s = signalOf(info)
   val inf = rememberInfiniteTransition(label = "signal")
   val sweep by inf.animateFloat(0f, 4f, infiniteRepeatable(tween(1200, easing = LinearEasing)), label = "sweep")
-  val off = VibeColors.onVariant().copy(alpha = 0.28f)
+  val dark = VibeColors.isDark()
+  // grey in dark mode, black with a soft shadow in light mode; all the same size
+  val ink = if (dark) Color(0xFFB5BAC1) else Color(0xFF111214)
+  val off = ink.copy(alpha = if (dark) 0.25f else 0.18f)
   Row(
     Modifier.height(48.dp).clip(RoundedCornerShape(12.dp)).clickable { VibeHaptics.light(); showSignal(s) }.padding(horizontal = 10.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
     for (i in 0 until 4) {
       val on = if (s.busy) i <= sweep.toInt() % 4 else i < s.lit
-      val color by animateColorAsState(if (on) s.color else off, tween(250), label = "dot$i")
+      val color by animateColorAsState(if (on) ink else off, tween(250), label = "dot$i")
       Box(
-        Modifier.padding(horizontal = 1.5.dp).align(Alignment.Bottom).padding(bottom = 17.dp)
-          .size((5 + i * 1.5f).dp).clip(CircleShape).background(color)
+        Modifier.padding(horizontal = 2.dp)
+          .then(if (!dark && on) Modifier.shadow(2.dp, CircleShape, ambientColor = Color.Black, spotColor = Color.Black) else Modifier)
+          .size(6.dp).clip(CircleShape).background(color)
       )
     }
   }
@@ -89,7 +94,7 @@ private fun showSignal(s: Signal) {
     Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
       Row(verticalAlignment = Alignment.CenterVertically) {
         for (i in 0 until 4) {
-          Box(Modifier.padding(end = 4.dp).size((8 + i * 2).dp).clip(CircleShape).background(if (i < s.lit) s.color else VibeColors.onVariant().copy(alpha = 0.28f)))
+          Box(Modifier.padding(end = 5.dp).size(9.dp).clip(CircleShape).background(if (i < s.lit) VibeColors.onSurface() else VibeColors.onVariant().copy(alpha = 0.28f)))
         }
         Spacer(Modifier.width(10.dp))
         Text(s.title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = VibeColors.onSurface())

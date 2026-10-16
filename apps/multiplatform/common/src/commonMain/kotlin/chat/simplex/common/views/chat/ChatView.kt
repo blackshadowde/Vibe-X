@@ -959,6 +959,17 @@ fun ChatLayout(
   searchPlaceholder: String?
 ) {
   if (chatsCtx.secondaryContextFilter == null) SideEffect { VibeNav.back = back }
+  // Vibe X: "Security and more" from the middle pane opens the chat with its info page on top
+  if (vibeStyle && chatsCtx.secondaryContextFilter == null) {
+    val openedId = chat.value?.id
+    LaunchedEffect(openedId) {
+      if (openedId != null && VibeNav.infoFor == openedId) {
+        VibeNav.infoFor = null
+        delay(380)
+        info()
+      }
+    }
+  }
   val chatInfo = remember { derivedStateOf { chat.value?.chatInfo } }
   val scope = rememberCoroutineScope()
   val attachmentDisabled = remember { derivedStateOf { composeState.value.attachmentDisabled } }

@@ -65,6 +65,12 @@ sealed class ActiveFilter {
 fun showNewChatSheet() = showNewChatSheet(appPrefs.oneHandUI.state)
 
 fun showNewChatSheet(oneHandUI: State<Boolean>) {
+  if (chat.simplex.common.views.vibe.vibeStyle) {
+    // Vibe X: the + pane slides up
+    connectProgressManager.cancelConnectProgress()
+    chat.simplex.common.views.vibe.VibeNewChat.show()
+    return
+  }
   connectProgressManager.cancelConnectProgress()
   ModalManager.start.closeModals()
   ModalManager.end.closeModals()

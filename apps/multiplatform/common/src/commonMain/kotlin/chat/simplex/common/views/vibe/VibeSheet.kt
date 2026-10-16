@@ -1,6 +1,7 @@
 package chat.simplex.common.views.vibe
 
 import androidx.compose.animation.core.*
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -197,4 +198,81 @@ fun rememberVibeHaptic(): (androidx.compose.ui.hapticfeedback.HapticFeedbackType
       else -> VibeHaptics.light()
     }
   }
+}
+
+/** A page opening: it rises from the bottom while the one under it sinks back a little. */
+fun vibePageUp(): androidx.compose.animation.ContentTransform =
+  (androidx.compose.animation.slideInVertically(VibeSprings.sheet()) { it } togetherWith
+    (androidx.compose.animation.scaleOut(tween(300), targetScale = 0.94f) + androidx.compose.animation.fadeOut(tween(300), targetAlpha = 0.4f)))
+    .apply { targetContentZIndex = 1f }
+
+/** A page closing: it slides down and the one under it comes forward again. */
+fun vibePageDown(): androidx.compose.animation.ContentTransform =
+  ((androidx.compose.animation.scaleIn(VibeSprings.page(), initialScale = 0.94f) + androidx.compose.animation.fadeIn(tween(220), initialAlpha = 0.4f)) togetherWith
+    androidx.compose.animation.slideOutVertically(tween(260, easing = CubicBezierEasing(0.32f, 0f, 0.67f, 0f))) { it })
+    .apply { targetContentZIndex = -1f }
+
+/**
+ * Pull a page down to close it, like Vibe's panes: from anywhere on a page
+ * that can't scroll, or past the top of one that can.
+ */
+@Composable
+fun VibePullDown(onClose: () -> Unit, content: @Composable () -> Unit) {
+  val scope = rememberCoroutineScope()
+  val density = LocalDensity.current
+  val screenH = with(density) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
+  val drag = remember { Animatable(0f) }
+  var closing by remember { mutableStateOf(false) }
+  fun settle(velocity: Float) {
+    scope.launch {
+      if (!closing && (velocity > 1400f || drag.value > screenH * 0.25f)) {
+        closing = true
+        VibeHaptics.light()
+        drag.animateTo(screenH, tween(200), initialVelocity = velocity)
+        onClose()
+      } else drag.animateTo(0f, VibeSprings.of(0.36f, 0.82f), initialVelocity = velocity)
+    }
+  }
+  val nested = remember {
+    object : NestedScrollConnection {
+      override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+        if (available.y < 0f && drag.value > 0f) {
+          val used = maxOf(available.y, -drag.value)
+          scope.launch { drag.snapTo(drag.value + used) }
+          return Offset(0f, used)
+        }
+        return Offset.Zero
+      }
+      override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+        if (available.y > 0f && source == NestedScrollSource.UserInput) {
+          scope.launch { drag.snapTo(drag.value + available.y) }
+          return Offset(0f, available.y)
+        }
+        return Offset.Zero
+      }
+      override suspend fun onPreFling(available: Velocity): Velocity {
+        if (drag.value > 0f) {
+          settle(available.y)
+          return available
+        }
+        return Velocity.Zero
+      }
+    }
+  }
+  Box(
+    Modifier
+      .fillMaxSize()
+      .graphicsLayer {
+        translationY = drag.value
+        val s = 1f - (drag.value / screenH).coerceIn(0f, 1f) * 0.06f
+        scaleX = s; scaleY = s
+        if (drag.value > 0f) { shape = RoundedCornerShape(28.dp); clip = true }
+      }
+      .nestedScroll(nested)
+      .draggable(
+        rememberDraggableState { d -> scope.launch { drag.snapTo((drag.value + d).coerceAtLeast(0f)) } },
+        Orientation.Vertical,
+        onDragStopped = { v -> settle(v) },
+      )
+  ) { content() }
 }
