@@ -2523,6 +2523,7 @@ fun BoxScope.ChatItemsList(
           prevItemSeparationLargeGap = false
         }
         CompositionLocalProvider(LocalItemContext provides ItemContext(selectionIndex = index)) {
+          if (vibeStyle && item.meta.isLive) VibeTicker.tick.value
           if (vibeStyle && item.vibeHidden()) {
             if (itemSeparation.date != null) VibeDateDivider(itemSeparation.date)
           } else if (vibeStyle && item.vibeTypingDots()) {
@@ -2548,6 +2549,7 @@ fun BoxScope.ChatItemsList(
     }
   }
   if (vibeStyle) {
+    LaunchedEffect(Unit) { while (true) { delay(15_000); VibeTicker.tick.value++ } }
     VibeOverlay()
     // their status, as a thought bubble under the top bar
     if (chatInfo is ChatInfo.Direct && chatsCtx.secondaryContextFilter == null) {

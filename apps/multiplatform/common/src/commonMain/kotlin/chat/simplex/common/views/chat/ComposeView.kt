@@ -46,6 +46,7 @@ import chat.simplex.res.MR
 import dev.icerock.moko.resources.ImageResource
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.Decoder
@@ -437,6 +438,8 @@ fun ComposeView(
   val prevLinkUrl = rememberSaveable { mutableStateOf<String?>(null) }
   val pendingLinkUrl = rememberSaveable { mutableStateOf<String?>(null) }
   val useLinkPreviews = true
+  // live typing updates and the final send take turns, so a late update can't turn a sent message back into a live one
+  val liveLock = remember { kotlinx.coroutines.sync.Mutex() }
   val saveLastDraft = chatModel.controller.appPrefs.privacySaveLastDraft.get()
   val smallFont = MaterialTheme.typography.body1.copy(color = MaterialTheme.colors.onBackground)
   val textStyle = remember(MaterialTheme.colors.isLight) { mutableStateOf(smallFont) }
@@ -1004,7 +1007,8 @@ fun ComposeView(
   // toChat without doing that leaves the sent message in the input
   fun sendMessage(ttl: Int?, sign: Boolean = false, toChat: Chat = chat, composed: ComposeState? = null) {
     withLongRunningApi(slow = 120_000) {
-      sendMessageAsync(null, false, ttl, sign, toChat, composed ?: composeState.value)
+      if (vibeStyle) liveLock.withLock { sendMessageAsync(null, false, ttl, sign, toChat, composed ?: composeState.value) }
+      else sendMessageAsync(null, false, ttl, sign, toChat, composed ?: composeState.value)
     }
   }
 
@@ -1139,6 +1143,7 @@ fun ComposeView(
   fun vibeTypingDots(): Boolean = vibeStyle && !chatModel.controller.appPrefs.vibeLiveTyping.get()
 
   suspend fun sendLiveMessage() {
+    liveLock.withLock {
     val cs = composeState.value
     val typedMsg = cs.message.text
     if ((cs.sendEnabled() || cs.contextItem is ComposeContextItem.QuotedItem) && (cs.liveMessage == null || !cs.liveMessage.sent)) {
@@ -1151,6 +1156,7 @@ fun ComposeView(
       val cItem = chatModel.addLiveDummy(chat.chatInfo)
       composeState.value = composeState.value.copy(liveMessage = LiveMessage(cItem, typedMsg = typedMsg, sentMsg = typedMsg, sent = false))
     }
+    }
   }
 
   fun liveMessageToSend(lm: LiveMessage, t: String): String? {
@@ -1159,6 +1165,7 @@ fun ComposeView(
   }
 
   suspend fun updateLiveMessage() {
+    liveLock.withLock {
     val typedMsg = composeState.value.message
     val liveMessage = composeState.value.liveMessage
     if (liveMessage != null) {
@@ -1169,12 +1176,13 @@ fun ComposeView(
       } else liveMessageToSend(liveMessage, typedMsg.text)
       if (sentMsg != null) {
         val ci = sendMessageAsync(sentMsg, live = true, ttl = null)
-        if (!ci.isNullOrEmpty()) {
+        if (!ci.isNullOrEmpty() && composeState.value.liveMessage != null) {
           composeState.value = composeState.value.copy(liveMessage = LiveMessage(ci.last(), typedMsg = typedMsg.text, sentMsg = sentMsg, sent = true))
         }
       } else if (liveMessage.typedMsg != typedMsg.text) {
         composeState.value = composeState.value.copy(liveMessage = liveMessage.copy(typedMsg = typedMsg.text))
       }
+    }
     }
   }
 
@@ -1717,6 +1725,25 @@ fun ComposeView(
   }
 
   // Vibe: "Send N" in the + pane sends the picked photos as soon as they're attached
+  // Vibe: live messages of yours that were left behind (the app closed mid-typing, or a late update),
+  // and empty typing markers, are taken back, so they don't sit "typing live" on the other phone
+  LaunchedEffect(chat.id) {
+    if (!vibeStyle || chat.chatInfo.chatType == ChatType.Local) return@LaunchedEffect
+    delay(1500)
+    val now = kotlinx.datetime.Clock.System.now()
+    val current = composeState.value.liveMessage?.chatItem?.id
+    val stale = chatsCtx.chatItems.value.filter {
+      it.chatDir.sent && it.id >= 0 && it.id != current && it.meta.itemDeleted == null &&
+        (it.meta.isLive || it.vibeInvisible()) && (now - it.meta.updatedAt).inWholeSeconds > 20
+    }.map { it.id }
+    if (stale.isNotEmpty()) {
+      val info = chat.chatInfo
+      withBGApi {
+        runCatching { chatModel.controller.apiDeleteChatItems(chat.remoteHostId, info.chatType, info.apiId, info.groupChatScope(), stale, CIDeleteMode.cidmBroadcast) }
+      }
+    }
+  }
+
   // Vibe: picked photos and videos come up in Vibe's send pop-up (preview, caption, HD) before they go
   LaunchedEffect(composeState.value.preview) {
     val p = composeState.value.preview

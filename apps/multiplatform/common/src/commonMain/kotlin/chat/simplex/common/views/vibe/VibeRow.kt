@@ -172,7 +172,7 @@ fun vibeEndsBlock(item: ChatItem, newer: ChatItem?): Boolean =
   newer == null || !newer.isVibeRow() || newer.vibeHidden() || newer.vibeTypingDots() || newer.quotedItem != null || vibeStartsBlock(newer, item)
 
 /** Items Vibe doesn't show (the intro at the top says it once). */
-fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLiveDummy)) || (meta.isLive && (content.text.isBlank() || meta.itemDeleted != null)) || vibeInvisible()) true else when (content) {
+fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLiveDummy)) || (meta.isLive && (content.text.isBlank() || meta.itemDeleted != null)) || vibeInvisible() || vibeStaleLive()) true else when (content) {
   is CIContent.SndDirectE2EEInfo, is CIContent.RcvDirectE2EEInfo,
   is CIContent.SndGroupE2EEInfo, is CIContent.RcvGroupE2EEInfo,
   is CIContent.RcvChatFeature, is CIContent.SndChatFeature,
@@ -218,4 +218,17 @@ fun ChatItem.vibeInvisible(): Boolean {
   val mc = content.msgContent as? MsgContent.MCText ?: return false
   val raw = mc.text
   return raw.isNotEmpty() && raw.replace(invisibleChars, "").isEmpty()
+}
+
+/**
+ * Their live message stopped changing a minute ago without being sent (their
+ * app closed mid-typing): it was a draft, so it goes away instead of sitting
+ * there "typing live".
+ */
+fun ChatItem.vibeStaleLive(): Boolean =
+  meta.isLive && !chatDir.sent && (kotlinx.datetime.Clock.System.now() - meta.updatedAt).inWholeSeconds > 60
+
+/** Ticks every 15 s while a chat is open, so stale live messages disappear without a scroll. */
+object VibeTicker {
+  val tick = androidx.compose.runtime.mutableStateOf(0L)
 }
