@@ -711,7 +711,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
     kotlinx.coroutines.delay(4000)
     VibeSupport.maybeAsk()
     kotlinx.coroutines.delay(2000)
-    if (VibeSheets.stack.isEmpty()) runCatching { VibeOpenLinks.maybeAsk() }
+    // (no settings popup at start: copying or sharing an invitation link opens it here)
   }
   val status = when (running) {
     true -> user.profile.shortDescr?.takeIf { it.isNotBlank() } ?: vt("Online")

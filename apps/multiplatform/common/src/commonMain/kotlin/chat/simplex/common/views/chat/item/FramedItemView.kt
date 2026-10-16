@@ -434,14 +434,16 @@ fun CIMarkdownText(
 
   val vibeRow = LocalVibeRows.current
   if (vibeRow && ci.meta.isLive) {
-    Box(Modifier.padding(vertical = 2.dp)) { VibeLiveText(text) }
+    Box(Modifier.padding(vertical = 2.dp)) { VibeLiveText(vibeTrimLead(text, null).first) }
     return
   }
   if (vibeRow) {
+    // Vibe: no leading spaces or invisible marks, so every line starts at the same edge
+    val (text, vibeFt) = vibeTrimLead(text, ci.formattedText)
     Row(Modifier.padding(vertical = 2.dp).then(selection.positionModifier), verticalAlignment = Alignment.Bottom) {
       Box(Modifier.weight(1f, fill = false)) {
         MarkdownText(
-          text, if (text.isEmpty()) emptyList() else ci.formattedText, toggleSecrets = true,
+          text, if (text.isEmpty()) emptyList() else vibeFt, toggleSecrets = true,
           sendCommandMsg = if (chatInfo.useCommands && chat.chatInfo.sndReady) { { msg -> sendCommandMsg(chatsCtx, chat, msg) } } else null,
           meta = null, chatTTL = chatTTL, linkMode = linkMode,
           mentions = ci.mentions, userMemberId = (chatInfo as? ChatInfo.Group)?.groupInfo?.membership?.memberId,
@@ -848,3 +850,25 @@ fun PreviewQuoteWithLongTextAndFile(@PreviewParameter(EditedProvider::class) edi
   }
 }
 */
+
+private fun vibeLeadInvisible(c: Char): Boolean =
+  c.isWhitespace() || c in '\u200B'..'\u200F' || c in '\u2060'..'\u2064' || c == '\uFEFF'
+
+/** The text without its leading spaces and invisible marks (and its formatted parts trimmed to match). */
+fun vibeTrimLead(text: String, ft: List<FormattedText>?): Pair<String, List<FormattedText>?> {
+  val t = text.trimStart(::vibeLeadInvisible)
+  val n = text.length - t.length
+  if (n == 0 || t.isEmpty()) return text to ft
+  if (ft == null) return t to null
+  var left = n
+  val out = ArrayList<FormattedText>(ft.size)
+  for (f in ft) {
+    if (left > 0) {
+      val k = minOf(left, f.text.length)
+      left -= k
+      val rest = f.text.substring(k)
+      if (rest.isNotEmpty()) out.add(FormattedText(rest, f.format))
+    } else out.add(f)
+  }
+  return t to out
+}

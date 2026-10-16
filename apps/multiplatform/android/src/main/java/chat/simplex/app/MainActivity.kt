@@ -66,6 +66,7 @@ class MainActivity: FragmentActivity() {
     setContent {
       AppScreen()
     }
+    runCatching { getSystemService(android.content.ClipboardManager::class.java)?.addPrimaryClipChangedListener(vibeClipListener) }
     SimplexApp.context.schedulePeriodicServiceRestartWorker()
     SimplexApp.context.schedulePeriodicWakeUp()
   }
@@ -74,6 +75,37 @@ class MainActivity: FragmentActivity() {
     super.onNewIntent(intent)
     processIntent(intent)
     processExternalIntent(intent)
+  }
+
+  // Vibe X: links copied in this app are yours (to send), so they're never offered back
+  private val vibeClipListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
+    runCatching {
+      val cm = getSystemService(android.content.ClipboardManager::class.java) ?: return@runCatching
+      val ts = if (Build.VERSION.SDK_INT >= 31) cm.primaryClipDescription?.timestamp ?: 0L else 0L
+      chat.simplex.common.views.vibe.VibeOpenLinks.copiedHere(cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString(), ts)
+    }
+  }
+
+  override fun onWindowFocusChanged(hasFocus: Boolean) {
+    super.onWindowFocusChanged(hasFocus)
+    if (!hasFocus || !chat.simplex.common.views.vibe.vibeStyle) return
+    // an invitation link copied in another app: offer to open it (Android lets apps read it only now)
+    runCatching {
+      val cm = getSystemService(android.content.ClipboardManager::class.java) ?: return@runCatching
+      val d = cm.primaryClipDescription ?: return@runCatching
+      if (!d.hasMimeType("text/*")) return@runCatching
+      if (Build.VERSION.SDK_INT >= 31) {
+        // only read a clip that's new since last time (each read shows Android's "pasted" notice)
+        if (d.timestamp == appPreferences.vibeClipTs.get()) return@runCatching
+        appPreferences.vibeClipTs.set(d.timestamp)
+      }
+      chat.simplex.common.views.vibe.VibeOpenLinks.offerCopied(cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString())
+    }
+  }
+
+  override fun onDestroy() {
+    runCatching { getSystemService(android.content.ClipboardManager::class.java)?.removePrimaryClipChangedListener(vibeClipListener) }
+    super.onDestroy()
   }
 
   override fun onResume() {
@@ -199,7 +231,12 @@ fun processExternalIntent(intent: Intent?) {
         intent.type == "text/plain" -> {
           val text = intent.getStringExtra(Intent.EXTRA_TEXT)
           val uri = intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri
-          if (uri != null) {
+          // Vibe X: an invitation link shared to the app opens it (no need to change Android's link settings)
+          val vibeLink = if (uri == null && chat.simplex.common.views.vibe.vibeStyle) chat.simplex.common.views.vibe.VibeOpenLinks.linkIn(text) else null
+          if (vibeLink != null) {
+            chat.simplex.common.views.vibe.VibeOpenLinks.copiedHere(vibeLink, 0L)
+            chat.simplex.common.views.vibe.VibeOpenLinks.open(vibeLink)
+          } else if (uri != null) {
             if (uri.scheme != "content") return showWrongUriAlert()
             // Shared file that contains plain text, like `*.log` file
             chatModel.sharedContent.value = SharedContent.File(text ?: "", uri.toURI())
