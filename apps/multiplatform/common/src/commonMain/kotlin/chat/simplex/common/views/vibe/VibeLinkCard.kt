@@ -41,6 +41,16 @@ object VibeLinks {
 
   fun firstUrl(text: String): String? = urlRegex.find(text)?.value
 
+  /** Invitation, address and group links (simplex.chat or a SimpleX server's short link). */
+  fun isSimplexLink(url: String): Boolean {
+    val u = url.lowercase()
+    if (u.startsWith("simplex:")) return true
+    val host = runCatching { java.net.URI(url).host }.getOrNull()?.lowercase() ?: return false
+    if (host == "simplex.chat" || host.endsWith(".simplex.chat") || host.endsWith(".simplex.im") || host == "simplex.im") return true
+    val path = runCatching { java.net.URI(url).rawPath }.getOrNull() ?: ""
+    return u.contains("#") && path in setOf("/a", "/c", "/i", "/g", "/r", "/contact", "/invitation")
+  }
+
   fun cached(url: String): Pair<Boolean, VibeLinkInfo?> = synchronized(cache) { cache.containsKey(url) to cache[url] }
 
   suspend fun info(url: String): VibeLinkInfo? {
@@ -74,10 +84,8 @@ object VibeLinks {
 fun VibeAutoLinkCard(item: ChatItem, sent: LinkPreview?, onLongClick: () -> Unit) {
   val url = remember(item.id, item.content.text) { sent?.uri ?: VibeLinks.firstUrl(item.content.text) } ?: return
   // SimpleX invitation and group links have their own cards
-  if (url.contains("simplex.chat/") || url.startsWith("simplex:")) {
-    if (sent != null) LinkCardFromPreview(sent, onLongClick)
-    return
-  }
+  // (their web page says "SimpleX Chat invitation", so no card for them)
+  if (VibeLinks.isSimplexLink(url)) return
   val allowed = VibeLinks.lookUpAllowed()
   var info by remember(url) { mutableStateOf(VibeLinks.cached(url).second) }
   var looked by remember(url) { mutableStateOf(VibeLinks.cached(url).first) }
