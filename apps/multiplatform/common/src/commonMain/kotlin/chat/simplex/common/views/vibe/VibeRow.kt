@@ -138,7 +138,7 @@ fun VibeMessageRow(
             else -> VibeColors.otherName()
           }
           Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
+            Text(name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color, style = androidx.compose.ui.text.TextStyle(shadow = vibeTextShadow()), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
             Spacer(Modifier.width(6.dp))
             Text(vibeTime(item.meta.itemTs), fontSize = 12.sp, color = VibeColors.onVariant(), maxLines = 1)
             if (item.meta.itemEdited) {

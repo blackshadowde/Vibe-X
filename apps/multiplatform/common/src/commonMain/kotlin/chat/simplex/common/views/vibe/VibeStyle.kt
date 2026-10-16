@@ -58,3 +58,14 @@ fun Modifier.vibeSweepIn(item: ChatItem): Modifier = composed {
     transformOrigin = TransformOrigin(if (sent) 1f else 0f, 1f)
   }
 }
+
+/**
+ * Vibe-flutter's soft shadow under chat text in light mode, so names and
+ * messages stand out on white (none in dark mode).
+ */
+@Composable
+fun vibeTextShadow(): androidx.compose.ui.graphics.Shadow? {
+  if (!androidx.compose.material.MaterialTheme.colors.isLight) return null
+  val d = LocalDensity.current
+  return with(d) { androidx.compose.ui.graphics.Shadow(androidx.compose.ui.graphics.Color(0x40000000), androidx.compose.ui.geometry.Offset(0f, 1.dp.toPx()), 4.dp.toPx()) }
+}

@@ -443,7 +443,7 @@ fun CIMarkdownText(
           mentions = ci.mentions, userMemberId = (chatInfo as? ChatInfo.Group)?.groupInfo?.membership?.memberId,
           uriHandler = uriHandler, senderBold = true, onLinkLongClick = onLinkLongClick, showViaProxy = false, showTimestamp = false, prefix = prefix,
           stripLink = stripLink,
-          style = MaterialTheme.typography.body1.copy(color = MaterialTheme.colors.onSurface, fontSize = vibeMessageTextSize().sp, lineHeight = (vibeMessageTextSize() * 1.35f).sp),
+          style = MaterialTheme.typography.body1.copy(color = MaterialTheme.colors.onSurface, fontSize = vibeMessageTextSize().sp, lineHeight = (vibeMessageTextSize() * 1.35f).sp, shadow = vibeTextShadow()),
           selectionRange = selection.highlightRange,
           onTextLayoutResult = selection.onTextLayoutResult
         )

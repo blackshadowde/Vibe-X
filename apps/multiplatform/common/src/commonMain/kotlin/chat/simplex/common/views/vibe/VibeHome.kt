@@ -426,6 +426,7 @@ private fun NavTile(icon: androidx.compose.ui.graphics.vector.ImageVector, label
 private fun DmTile(chat: Chat) {
   val active = chat.id == chatModel.chatId.value
   val unread = chat.chatStats.unreadCount
+  val lit = unread > 0 || chat.chatStats.unreadChat
   val showMenu = remember { mutableStateOf(false) }
   val inProgress = remember { mutableStateOf(false) }
   val scope = rememberCoroutineScope()
@@ -461,8 +462,9 @@ private fun DmTile(chat: Chat) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Text(
             info.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            fontWeight = if (unread > 0) FontWeight.Bold else FontWeight.SemiBold, fontSize = 16.sp,
-            color = VibeColors.onSurface(), modifier = Modifier.weight(1f, false)
+            // bold like Discord's channel list: darkest and heaviest when there's something new
+            fontWeight = if (lit) FontWeight.ExtraBold else FontWeight.Bold, fontSize = 16.sp,
+            color = if (lit || active) VibeColors.onSurface() else VibeColors.onVariant(), modifier = Modifier.weight(1f, false)
           )
           if (info.chatSettings?.favorite == true) {
             Spacer(Modifier.width(4.dp))
@@ -486,6 +488,14 @@ private fun DmTile(chat: Chat) {
         }
       }
       if (unread > 0) VibeUnreadBadge(unread)
+      else if (chat.chatStats.unreadChat) Box(Modifier.size(10.dp).clip(CircleShape).background(VibeColors.red))
+    }
+    if (lit && !active) {
+      // the little pip on the left edge, like Discord
+      Box(
+        Modifier.align(Alignment.CenterStart).width(4.dp).height(8.dp)
+          .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp)).background(VibeColors.onSurface())
+      )
     }
     DefaultDropdownMenu(showMenu) {
       val showMarkRead = chat.chatStats.unreadCount > 0 || chat.chatStats.unreadChat
@@ -521,10 +531,11 @@ private fun InviteTile(chat: Chat) {
 @Composable
 fun VibeUnreadBadge(count: Int) {
   Box(
-    Modifier.defaultMinSize(minWidth = 20.dp).height(20.dp).clip(RoundedCornerShape(10.dp)).background(VibeColors.red).padding(horizontal = 6.dp),
+    // a red circle (a pill for two or more digits), like Discord's
+    Modifier.defaultMinSize(minWidth = 22.dp).height(22.dp).clip(RoundedCornerShape(11.dp)).background(VibeColors.red).padding(horizontal = 6.dp),
     contentAlignment = Alignment.Center,
   ) {
-    Text(if (count > 99) "99+" else "$count", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    Text(if (count > 99) "99+" else "$count", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold)
   }
 }
 
@@ -656,7 +667,7 @@ fun VibeHashRow(
           },
           fontSize = 16.sp,
           color = if (lit) VibeColors.onSurface() else muted,
-          fontWeight = if (lit) FontWeight.SemiBold else FontWeight.Normal,
+          fontWeight = if (lit) FontWeight.ExtraBold else FontWeight.Bold,
         )
         if (subtitle != null) {
           Row(Modifier.padding(top = 1.dp), verticalAlignment = Alignment.CenterVertically) {

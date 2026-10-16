@@ -181,6 +181,7 @@ fun VibeReplyStrip(quote: CIQuote, info: ChatInfo, onClick: () -> Unit) {
     Spacer(Modifier.width(6.dp))
     Text(
       "@$name", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+      style = androidx.compose.ui.text.TextStyle(shadow = vibeTextShadow()),
       color = if (own) VibeColors.ownName() else VibeColors.otherName(), modifier = Modifier.widthIn(max = 140.dp)
     )
     Spacer(Modifier.width(6.dp))

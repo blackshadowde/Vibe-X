@@ -44,6 +44,11 @@ enum class VibeScene(val seconds: Float) {
   Birthday(3.6f),   // happy birthday: balloons float up past a glowing cake
   GoodNight(3.4f),  // good night: the screen dims to night, moon, stars, Zz
   Love(3.0f),       // love you: a big heart beats twice and breaks into little ones
+  MissYou(3.4f),    // miss you: a paper plane carries a heart across, loops, and drops it softly
+  GoodMorning(3.4f),// good morning: the sun rises with turning rays, birds fly by
+  Thanks(3.0f),     // thank you: a flower blooms open around 🙏, petals drift down
+  Sorry(3.4f),      // sorry: a small cloud rains a little, then clears to a rainbow
+  Wow(2.4f),        // wow / omg: a comic burst zooms in with speed lines behind "WOW!"
 }
 
 object VibeHotWords {
@@ -52,10 +57,15 @@ object VibeHotWords {
     VibeScene.Birthday to r("""happy\s*b(irth)?day|\bhbd\b|🎂|janmadin|जन्मदिन|పుట్టినరోజు"""),
     VibeScene.Congrats to r("""congrat|\bcongo\b|badhai|बधाई|అభినందన"""),
     VibeScene.GoodNight to r("""good\s*night|\bgud\s*n(i|y)te?\b|\bgn8\b|shubh\s*ratri|शुभ\s*रात्रि|శుభ\s*రాత్రి|😴|🌙"""),
+    VibeScene.GoodMorning to r("""good\s*m(o|or)ning|\bgud\s*m(o|or)?n(i|n)?ng\b|\bgm\b|suprabhat|सुप्रभात|శుభోదయం|🌅"""),
+    VibeScene.MissYou to r("""\bmiss(ed|ing)?\s*(you|u|ya)\b|🥺"""),
     VibeScene.Love to r("""\bi\s*love\s*(you|u)\b|\blove\s*(you|u)\b|\bily\b|\bluv\s*(you|u)\b|❤️❤️|💖|💗"""),
     VibeScene.Kiss to r("""\bkiss(es|y)?\b|\bmwa+h*\b|\bumm?ah+\b|😘|💋|😚"""),
     VibeScene.Hug to r("""\bhugs?\b|\*hug|\bjhappi\b|🤗|🫂"""),
     VibeScene.Party to r("""\bpart(y|ee)+\b|\bcelebrat|🥳|🪩"""),
+    VibeScene.Thanks to r("""\bthank(s|\s*you|\s*u|q)\b|\bthanx\b|\bthx\b|\bty\b|dhanyavaa?d|धन्यवाद|ధన్యవాదాలు|🙏"""),
+    VibeScene.Sorry to r("""\bsorry\b|\bsry\b|\bmy\s*bad\b|\bmaaf\b|माफ़|క్షమించు"""),
+    VibeScene.Wow to r("""\bwo+w+\b|\bomg\b|\bwh?oa+h?\b|😮|🤯|😱"""),
     VibeScene.Laugh to r("""\b(ha){3,}h?\b|\b(he){3,}\b|\blo+l+\b|\blmf?a+o+\b|\brofl\b|😂|🤣"""),
   )
 
@@ -147,6 +157,10 @@ private fun Scene(scene: VibeScene, done: () -> Unit) {
         VibeScene.Hug -> { delay(500); VibeHaptics.light(); delay(450); VibeHaptics.heavy() }
         VibeScene.Party -> repeat(8) { VibeHaptics.selection(); delay(260) }
         VibeScene.Love -> repeat(2) { VibeHaptics.light(); delay(150); VibeHaptics.medium(); delay(550) }
+        VibeScene.Wow -> { VibeHaptics.heavy(); delay(120); VibeHaptics.light() }
+        VibeScene.Thanks -> { delay(300); VibeHaptics.light(); delay(200); VibeHaptics.light() }
+        VibeScene.Sorry -> { delay(1500); VibeHaptics.light() }
+        VibeScene.MissYou -> { delay(1700); VibeHaptics.medium() }
         else -> VibeHaptics.medium()
       }
     }
@@ -170,6 +184,11 @@ private fun Scene(scene: VibeScene, done: () -> Unit) {
         VibeScene.Birthday -> birthday(t, rnd, g, w, h, d)
         VibeScene.GoodNight -> goodNight(t, rnd, g, w, h, d)
         VibeScene.Love -> love(t, rnd, g, w, h, d)
+        VibeScene.MissYou -> missYou(t, rnd, g, w, h, d)
+        VibeScene.GoodMorning -> goodMorning(t, rnd, g, w, h, d)
+        VibeScene.Thanks -> thanks(t, rnd, g, w, h, d)
+        VibeScene.Sorry -> sorry(t, rnd, g, w, h, d)
+        VibeScene.Wow -> wow(t, rnd, g, w, h, d)
       }
     }
   }
@@ -477,4 +496,204 @@ private fun DrawScope.love(t: Float, r: Random, g: Glyphs, w: Float, h: Float, d
     val c = Offset(center.x + cos(a) * sp * k, center.y + sin(a) * sp * k - 90f * d * u)
     drawPath(heart(c, hs), (if (i % 3 == 0) Color(0xFFFF8FB1) else Color(0xFFFF3B5C)).copy(alpha = 1f - u))
   }
+}
+
+/* --- miss you: a paper plane carries a heart across on a dotted trail, loops once, and lets it float down to the middle --- */
+private fun DrawScope.missYou(t: Float, r: Random, g: Glyphs, w: Float, h: Float, d: Float) {
+  val tint = fadeInOut(t, 0.2f, 0.8f)
+  drawRect(Brush.verticalGradient(listOf(Color(0x335C7CFA), Color(0x22A0B4FF), Color.Transparent)), alpha = tint, size = Size(w, h))
+  // the plane's path: in from the left, a loop in the middle, out to the right
+  fun planeAt(u: Float): Offset {
+    val x = -60f * d + u * (w + 120f * d)
+    val loop = seg(u, 0.38f, 0.62f)
+    val a = loop * 2f * PI.toFloat()
+    val lx = if (loop > 0f && loop < 1f) -sin(a) * 70f * d else 0f
+    val ly = if (loop > 0f && loop < 1f) -(1f - cos(a)) * 70f * d else 0f
+    return Offset(x + lx, h * 0.32f + sin(u * 6f) * 18f * d + ly)
+  }
+  val fly = seg(t, 0f, 0.75f)
+  // dotted trail behind it
+  repeat(26) { k ->
+    val u = fly - k * 0.012f
+    if (u <= 0f || fly >= 1f) return@repeat
+    drawCircle(Color.White.copy(alpha = 0.55f * (1f - k / 26f) * tint), 2.2f * d, planeAt(u))
+  }
+  if (fly > 0f && fly < 1f) {
+    val pos = planeAt(fly)
+    val ahead = planeAt((fly + 0.01f).coerceAtMost(1f))
+    val deg = atan2(ahead.y - pos.y, ahead.x - pos.x) * 57.3f
+    rotate(deg, pos) {
+      val s = 22f * d
+      val plane = Path().apply { moveTo(pos.x + s, pos.y); lineTo(pos.x - s, pos.y - s * 0.7f); lineTo(pos.x - s * 0.45f, pos.y); lineTo(pos.x - s, pos.y + s * 0.7f); close() }
+      drawPath(plane, Color.White)
+      drawLine(Color(0xFFB0BEC5), Offset(pos.x - s * 0.45f, pos.y), Offset(pos.x + s, pos.y), strokeWidth = 1.5f * d)
+    }
+  }
+  // the heart it carried: hangs under the plane, let go after the loop, floats down to the middle
+  val drop = seg(t, 0.55f, 0.85f)
+  val hangPos = planeAt(min(fly, 0.55f).coerceAtLeast(0.001f)).let { Offset(it.x, it.y + 34f * d) }
+  val center = Offset(w / 2, h * 0.48f)
+  val heartPos = if (drop <= 0f) hangPos else Offset(hangPos.x + (center.x - hangPos.x) * smooth(drop) + sin(drop * 9f) * 16f * d * (1f - drop), hangPos.y + (center.y - hangPos.y) * smooth(drop))
+  val beat = 1f + 0.12f * sin(seg(t, 0.85f, 0.95f) * PI.toFloat())
+  val ha = 1f - seg(t, 0.9f, 1f)
+  if (t > 0.04f) {
+    if (drop > 0.9f) drawCircle(Brush.radialGradient(listOf(Color(0x55FF6B8B), Color.Transparent), heartPos, 90f * d), 90f * d, heartPos, alpha = ha)
+    drawPath(heart(heartPos, (if (drop > 0f) 30f + 40f * smooth(drop) else 30f) * d * beat), Color(0xFFFF6B8B).copy(alpha = ha))
+  }
+  val face = seg(t, 0.82f, 1f)
+  if (face > 0f && face < 1f) glyph(g.get("🥺", 46f), Offset(center.x, center.y + 70f * d), 1f - seg(face, 0.7f, 1f), backOut(seg(face, 0f, 0.4f)))
+}
+
+/* --- good morning: warm light from below, the sun rises with slowly turning rays, birds fly across --- */
+private fun DrawScope.goodMorning(t: Float, r: Random, g: Glyphs, w: Float, h: Float, d: Float) {
+  val warm = fadeInOut(t, 0.2f, 0.8f)
+  drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color(0x33FFB74D), Color(0x77FF8A65)), startY = h * 0.3f, endY = h), alpha = warm, size = Size(w, h))
+  val rise = smooth(seg(t, 0.02f, 0.5f))
+  val sun = Offset(w / 2, h * 0.78f - rise * h * 0.36f)
+  val sr = 56f * d
+  if (warm > 0f) {
+    drawCircle(Brush.radialGradient(listOf(Color(0x88FFD54F), Color.Transparent), sun, sr * 3.2f), sr * 3.2f, sun, alpha = warm)
+    // rays turning slowly
+    rotate(t * 70f, sun) {
+      repeat(12) { k ->
+        val a = k / 12f * 2f * PI.toFloat()
+        val inner = sr * 1.3f
+        val outer = sr * (1.9f + 0.25f * sin(t * 20f + k))
+        drawLine(Color(0xFFFFC107).copy(alpha = 0.85f * warm), Offset(sun.x + cos(a) * inner, sun.y + sin(a) * inner), Offset(sun.x + cos(a) * outer, sun.y + sin(a) * outer), strokeWidth = 6f * d, cap = StrokeCap.Round)
+      }
+    }
+    drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF59D), Color(0xFFFFB300)), sun, sr), sr, sun, alpha = warm)
+  }
+  // birds: little Vs that flap as they cross
+  repeat(5) { i ->
+    val y0 = h * (0.18f + r.nextFloat() * 0.2f)
+    val start = 0.15f + r.nextFloat() * 0.25f
+    val size = (10f + r.nextFloat() * 6f) * d
+    val u = seg(t, start, start + 0.6f)
+    if (u <= 0f || u >= 1f) return@repeat
+    val x = -30f * d + u * (w + 60f * d)
+    val y = y0 + sin(u * 5f + i) * 10f * d
+    val flap = sin(t * 60f + i) * 0.6f
+    val bird = Path().apply {
+      moveTo(x - size, y - size * flap)
+      quadraticTo(x - size * 0.5f, y - size * 0.4f, x, y)
+      quadraticTo(x + size * 0.5f, y - size * 0.4f, x + size, y - size * flap)
+    }
+    drawPath(bird, Color(0xFF37474F).copy(alpha = 0.8f * (1f - seg(u, 0.85f, 1f))), style = Stroke(width = 2.5f * d, cap = StrokeCap.Round))
+  }
+  val u = seg(t, 0.35f, 0.95f)
+  if (u > 0f && u < 1f) glyph(g.get("☕", 56f), Offset(w / 2, h * 0.62f), 1f - seg(u, 0.75f, 1f), backOut(seg(u, 0f, 0.3f)))
+}
+
+/* --- thank you: a flower blooms open around 🙏, then petals drift down --- */
+private fun DrawScope.thanks(t: Float, r: Random, g: Glyphs, w: Float, h: Float, d: Float) {
+  val center = Offset(w / 2, h * 0.45f)
+  val bloom = backOut(seg(t, 0.05f, 0.4f))
+  val fade = 1f - seg(t, 0.75f, 0.95f)
+  val petals = listOf(Color(0xFFFF8FB1), Color(0xFFFFB3C7))
+  // two rings of petals open and turn a little
+  for (ring in 0..1) {
+    val n = if (ring == 0) 8 else 6
+    val len = (if (ring == 0) 92f else 62f) * d * bloom
+    val wid = (if (ring == 0) 40f else 30f) * d * bloom
+    rotate(t * 30f + ring * 30f, center) {
+      repeat(n) { k ->
+        val deg = k * 360f / n
+        rotate(deg, center) {
+          drawOval(petals[ring].copy(alpha = fade), Offset(center.x - wid / 2, center.y - len), Size(wid, len))
+        }
+      }
+    }
+  }
+  drawCircle(Color(0xFFFFD54F).copy(alpha = fade), 30f * d * bloom, center)
+  glyph(g.get("🙏", 44f), center, fade, bloom)
+  // petals drifting down
+  repeat(16) { i ->
+    val x0 = w * r.nextFloat()
+    val start = 0.25f + r.nextFloat() * 0.35f
+    val spin = r.nextFloat() * 6f
+    val pw = (10f + r.nextFloat() * 6f) * d
+    val u = seg(t, start, start + 0.55f)
+    if (u <= 0f || u >= 1f) return@repeat
+    val x = x0 + sin(u * 6f + spin) * 26f * d
+    val y = -20f * d + u * h * 0.9f
+    rotate(spin * 50f + u * 300f, Offset(x, y)) {
+      drawOval(petals[i % 2].copy(alpha = 1f - seg(u, 0.75f, 1f)), Offset(x - pw / 2, y - pw), Size(pw, pw * 2f))
+    }
+  }
+}
+
+/* --- sorry: a little grey cloud drifts in and rains, then it clears and a rainbow arcs over --- */
+private fun DrawScope.sorry(t: Float, r: Random, g: Glyphs, w: Float, h: Float, d: Float) {
+  val center = Offset(w / 2, h * 0.36f)
+  val inAt = smooth(seg(t, 0f, 0.2f))
+  val away = seg(t, 0.5f, 0.7f)
+  val cloudPos = Offset(center.x - (1f - inAt) * w * 0.7f + away * w * 0.8f, center.y)
+  val cloudA = 1f - away
+  if (cloudA > 0f) {
+    val c = Color(0xFF90A4AE).copy(alpha = cloudA)
+    val s = 1f * d
+    drawCircle(c, 36f * s, Offset(cloudPos.x - 34f * s, cloudPos.y + 6f * s))
+    drawCircle(c, 48f * s, Offset(cloudPos.x, cloudPos.y - 8f * s))
+    drawCircle(c, 34f * s, Offset(cloudPos.x + 38f * s, cloudPos.y + 8f * s))
+    drawRoundRect(c, Offset(cloudPos.x - 70f * s, cloudPos.y), Size(140f * s, 40f * s), androidx.compose.ui.geometry.CornerRadius(20f * s))
+  }
+  // rain while it's overhead
+  repeat(22) { i ->
+    val dx = (r.nextFloat() - 0.5f) * 120f * d
+    val start = 0.15f + r.nextFloat() * 0.35f
+    val u = seg(t, start, start + 0.18f)
+    if (u <= 0f || u >= 1f) return@repeat
+    val x = cloudPos.x + dx
+    val y = cloudPos.y + 40f * d + u * h * 0.35f
+    drawLine(Color(0xFF64B5F6).copy(alpha = 0.8f * (1f - u) * cloudA), Offset(x, y), Offset(x - 3f * d, y + 14f * d), strokeWidth = 3f * d, cap = StrokeCap.Round)
+  }
+  // the rainbow
+  val bow = smooth(seg(t, 0.55f, 0.85f))
+  val bowA = 1f - seg(t, 0.85f, 1f)
+  if (bow > 0f) {
+    val colors = listOf(Color(0xFFFF5252), Color(0xFFFFAB40), Color(0xFFFFEB3B), Color(0xFF69F0AE), Color(0xFF40C4FF), Color(0xFF7C4DFF))
+    val base = Offset(w / 2, h * 0.55f)
+    colors.forEachIndexed { k, c ->
+      val rr = (150f - k * 12f) * d
+      drawArc(c.copy(alpha = 0.85f * bowA), 180f, 180f * bow, false, Offset(base.x - rr, base.y - rr), Size(rr * 2, rr * 2), style = Stroke(width = 12f * d, cap = StrokeCap.Round))
+    }
+    glyph(g.get("🙏", 48f), Offset(base.x, base.y - 30f * d), bowA, backOut(seg(t, 0.62f, 0.8f)))
+  }
+}
+
+/* --- wow / omg: a comic burst zooms in with speed lines, "WOW!" stamped on it --- */
+private fun DrawScope.wow(t: Float, r: Random, g: Glyphs, w: Float, h: Float, d: Float) {
+  val center = Offset(w / 2, h * 0.45f)
+  val fade = 1f - seg(t, 0.75f, 1f)
+  // speed lines rushing out from the middle
+  repeat(28) { i ->
+    val a = i / 28f * 2f * PI.toFloat() + r.nextFloat() * 0.1f
+    val start = r.nextFloat() * 0.25f
+    val u = seg(t, start, start + 0.35f)
+    if (u <= 0f || u >= 1f) return@repeat
+    val r0 = (90f + u * 260f) * d
+    val r1 = r0 + 60f * d * (1f - u)
+    drawLine(Color(0xFF313338).copy(alpha = 0.35f * (1f - u)), Offset(center.x + cos(a) * r0, center.y + sin(a) * r0), Offset(center.x + cos(a) * r1, center.y + sin(a) * r1), strokeWidth = 3f * d, cap = StrokeCap.Round)
+  }
+  // the jagged burst
+  val pop = backOut(seg(t, 0f, 0.22f))
+  val wobble = 1f + 0.04f * sin(t * 40f)
+  val spikes = 14
+  val outer = 130f * d * pop * wobble
+  val inner = 92f * d * pop * wobble
+  if (pop > 0f) {
+    val burst = Path()
+    for (k in 0 until spikes * 2) {
+      val a = k * PI.toFloat() / spikes + t * 0.6f
+      val rr = if (k % 2 == 0) outer else inner
+      val p = Offset(center.x + cos(a) * rr, center.y + sin(a) * rr)
+      if (k == 0) burst.moveTo(p.x, p.y) else burst.lineTo(p.x, p.y)
+    }
+    burst.close()
+    drawPath(burst, Brush.radialGradient(listOf(Color(0xFFFFF176), Color(0xFFFFB300)), center, outer), alpha = fade)
+    drawPath(burst, Color(0xFF313338).copy(alpha = fade), style = Stroke(width = 6f * d, join = StrokeJoin.Round))
+  }
+  val txt = g.get("WOW!", 46f, bold = true, color = Color(0xFFE53935))
+  glyph(txt, center, fade, backOut(seg(t, 0.08f, 0.3f)), -8f + sin(t * 30f) * 3f)
 }
