@@ -2049,7 +2049,7 @@ fun BoxScope.ChatItemsList(
                 onAvatarClick = {
                   val d = cItem.chatDir
                   if (d is CIDirection.GroupRcv && chatInfo is ChatInfo.Group) VibeProfileSheet.showMember(chatInfo.groupInfo, d.groupMember) { showMemberInfo(chatInfo.groupInfo, d.groupMember) }
-                  else if (d.sent) VibeOwnProfile.show()
+                  else if (d.sent) VibeProfileSheet.showSelf()
                   else if (chatInfo is ChatInfo.Direct) VibeProfileSheet.showContact(chat) { showChatInfo() }
                   else showChatInfo()
                 },

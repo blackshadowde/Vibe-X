@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import chat.simplex.common.model.*
 import chat.simplex.common.platform.base64ToBitmap
+import chat.simplex.common.platform.scale
 import chat.simplex.common.platform.chatModel
 
 /** Vibe-flutter's colour scheme (dark / light). */
@@ -195,8 +196,53 @@ private val bitmapCache = object : java.util.LinkedHashMap<String, androidx.comp
 
 fun vibeBitmap(image: String?): androidx.compose.ui.graphics.ImageBitmap? {
   if (image.isNullOrEmpty()) return null
+  VibeMyHd.bitmapFor(image)?.let { return it }
   synchronized(bitmapCache) { bitmapCache[image]?.let { return it } }
   val b = runCatching { base64ToBitmap(image) }.getOrNull() ?: return null
   synchronized(bitmapCache) { bitmapCache[image] = b }
   return b
+}
+
+/**
+ * Your own picture in full resolution. SimpleX only lets a profile picture
+ * be about 12 KB (that's what contacts receive), so Vibe X keeps the full
+ * picture you chose on this phone and shows it wherever your picture appears.
+ */
+object VibeMyHd {
+  private val file get() = java.io.File(chat.simplex.common.platform.appFilesDir, "vibe_my_picture_hd.jpg")
+  @Volatile private var cachedKey: String? = null
+  @Volatile private var cached: androidx.compose.ui.graphics.ImageBitmap? = null
+
+  private fun keyOf(image: String) = image.length.toString() + ":" + image.hashCode()
+
+  fun encode(square: androidx.compose.ui.graphics.ImageBitmap): ByteArray? = runCatching {
+    val max = 1080
+    val b = if (square.width > max) square.scale(max, (square.height * max.toFloat() / square.width).toInt().coerceAtLeast(1)) else square
+    chat.simplex.common.platform.compressImageData(b, false).toByteArray()
+  }.getOrNull()
+
+  fun save(image: String, jpeg: ByteArray) {
+    runCatching {
+      file.parentFile?.mkdirs()
+      file.writeBytes(jpeg)
+      chat.simplex.common.platform.appPreferences.vibeMyHdKey.set(keyOf(image))
+      cachedKey = null; cached = null
+    }
+  }
+
+  fun clear() {
+    runCatching { file.delete() }
+    chat.simplex.common.platform.appPreferences.vibeMyHdKey.set(null)
+    cachedKey = null; cached = null
+  }
+
+  /** The full picture if [image] is your current picture and it's kept here. */
+  fun bitmapFor(image: String): androidx.compose.ui.graphics.ImageBitmap? {
+    val key = chat.simplex.common.platform.appPreferences.vibeMyHdKey.get() ?: return null
+    if (key != keyOf(image)) return null
+    if (cachedKey == key) return cached
+    val b = runCatching { if (file.exists()) chat.simplex.common.views.helpers.getBitmapFromByteArray(file.readBytes(), false) else null }.getOrNull()
+    cachedKey = key; cached = b
+    return b
+  }
 }

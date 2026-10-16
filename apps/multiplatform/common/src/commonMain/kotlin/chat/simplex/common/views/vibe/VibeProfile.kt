@@ -111,6 +111,31 @@ object VibeProfileSheet {
     }
   }
 
+  /** You, as others see you (tapping your own picture in a chat): picture across the top, name, @name, about, member since. */
+  fun showSelf() {
+    val user = chatModel.currentUser.value ?: return
+    VibeHaptics.light()
+    val since = (chatModel.chats.value.firstOrNull { it.chatInfo is ChatInfo.Local }?.chatInfo as? ChatInfo.Local)?.noteFolder?.createdAt
+    VibeSheets.show(handle = false, corner = 24.dp, background = { VibeColors.surface() }) { close ->
+      PersonSheet(
+        name = user.fullName.trim().ifEmpty { user.displayName },
+        image = user.image,
+        subtitle = "@" + user.displayName,
+        fullName = null,
+        about = VibeStatus.bioOf(user.profile.description),
+        status = user.profile.shortDescr?.ifBlank { null },
+        timeZone = null,
+        since = since,
+        sinceLabel = vt("Member since"),
+        close = close,
+        message = null,
+        call = null,
+        video = null,
+        more = null,
+      )
+    }
+  }
+
   private fun openVibeChatById(chat: Chat) {
     val c = chatModel.chats.value.firstOrNull { it.id == chat.id } ?: chat
     if (chatModel.chatId.value != c.id) openVibeChat(c, kotlinx.coroutines.MainScope())
@@ -120,7 +145,7 @@ object VibeProfileSheet {
 @Composable
 private fun BleedHeader(name: String, image: String?, height: Dp, onBack: () -> Unit) {
   val surface = VibeColors.surface()
-  val bitmap = remember(image) { image?.let { runCatching { base64ToBitmap(it) }.getOrNull() } }
+  val bitmap = remember(image) { vibeBitmap(image) }
   Box(Modifier.fillMaxWidth().height(height)) {
     if (bitmap != null) {
       VibeHeaderPhoto(bitmap)
@@ -160,10 +185,10 @@ private fun PersonSheet(
   since: Instant?,
   sinceLabel: String,
   close: () -> Unit,
-  message: () -> Unit,
+  message: (() -> Unit)?,
   call: (() -> Unit)?,
   video: (() -> Unit)?,
-  more: () -> Unit,
+  more: (() -> Unit)?,
 ) {
   val clipboard = LocalClipboardManager.current
   val muted = VibeColors.onVariant()
@@ -184,6 +209,7 @@ private fun PersonSheet(
           Icon(VibeIcons.Copy, null, Modifier.size(14.dp), tint = muted)
         }
       }
+      if (message != null) {
       Spacer(Modifier.height(16.dp))
       Row(verticalAlignment = Alignment.CenterVertically) {
         Row(
@@ -202,6 +228,7 @@ private fun PersonSheet(
           Spacer(Modifier.width(8.dp))
           SquareButton(VibeIcons.Videocam, soft, video)
         }
+      }
       }
       val label = Modifier.padding(top = 18.dp, bottom = 4.dp)
       val local = timeZone?.let { VibeStatus.localTime(it) }
@@ -224,6 +251,7 @@ private fun PersonSheet(
           Text(dateText(since), fontSize = 15.sp, color = VibeColors.onSurface())
         }
       }
+      if (more != null) {
       Spacer(Modifier.height(18.dp))
       Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(soft).clickable(onClick = more).padding(horizontal = 14.dp, vertical = 12.dp),
@@ -235,6 +263,7 @@ private fun PersonSheet(
           Text(vt("Security and more"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = VibeColors.onSurface())
           Text(vt("Verify, alias, disappearing messages, servers"), fontSize = 12.5.sp, color = muted)
         }
+      }
       }
       Spacer(Modifier.navigationBarsPadding().height(24.dp))
     }
@@ -402,7 +431,7 @@ private fun VibePressable(onClick: () -> Unit, content: @Composable (Modifier) -
  */
 @Composable
 fun VibeBanner(image: String?, modifier: Modifier) {
-  val bitmap = remember(image) { image?.let { runCatching { base64ToBitmap(it) }.getOrNull() } }
+  val bitmap = remember(image) { vibeBitmap(image) }
   Box(modifier.background(Color(0xFF1F2624)).clipToBounds()) {
     if (bitmap != null) {
       Image(
@@ -438,6 +467,8 @@ private fun EditPane(close: () -> Unit) {
   var bio by remember { mutableStateOf(startBio) }
   var share by remember { mutableStateOf(startShare) }
   var image by remember { mutableStateOf(start.image) }
+  // your picture in full, kept on this phone (contacts get the small one SimpleX allows)
+  var hd by remember { mutableStateOf<ByteArray?>(null) }
   var picker by remember { mutableStateOf(false) }
   var busy by remember { mutableStateOf(false) }
   val chosen = rememberSaveable { mutableStateOf<java.net.URI?>(null) }
@@ -463,6 +494,11 @@ private fun EditPane(close: () -> Unit) {
       busy = false
       if (updated != null) {
         chatModel.updateCurrentUser(user.remoteHostId, updated.first)
+        val saved = updated.first.image
+        withContext(Dispatchers.IO) {
+          if (saved == null) VibeMyHd.clear()
+          else if (saved != start.image) hd?.let { VibeMyHd.save(saved, it) }
+        }
         appPreferences.vibeShareTimeOff.set(!share)
         VibeHaptics.success()
         showToast(vt("Profile saved"))
@@ -507,10 +543,12 @@ private fun EditPane(close: () -> Unit) {
             chosen,
             onImageChange = { bitmap ->
               scope.launch {
-                val encoded = withContext(Dispatchers.Default) {
-                  runCatching { vibeEncodeAvatar(cropToSquare(bitmap)) }.getOrNull()
+                val square = withContext(Dispatchers.Default) { runCatching { cropToSquare(bitmap) }.getOrNull() } ?: return@launch
+                val encoded = withContext(Dispatchers.Default) { runCatching { vibeEncodeAvatar(square) }.getOrNull() }
+                if (encoded != null) {
+                  image = encoded
+                  hd = withContext(Dispatchers.Default) { VibeMyHd.encode(square) }
                 }
-                if (encoded != null) image = encoded
               }
             },
             hideBottomSheet = { picker = false }
@@ -840,7 +878,7 @@ fun Modifier.vibeBleed(top: Dp, horizontal: Dp): Modifier = this.then(
 fun VibeInfoBleedHeader(name: String, image: String?, sidePadding: Dp, height: Dp = 260.dp) {
   val top = vibeInfoTopInset()
   val bg = androidx.compose.material.MaterialTheme.colors.background
-  val bitmap = remember(image) { image?.let { runCatching { base64ToBitmap(it) }.getOrNull() } }
+  val bitmap = remember(image) { vibeBitmap(image) }
   val enter = remember { androidx.compose.animation.core.Animatable(1.08f) }
   LaunchedEffect(Unit) { enter.animateTo(1f, VibeSprings.of(0.7f, 1f)) }
   Box(

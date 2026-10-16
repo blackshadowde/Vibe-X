@@ -211,6 +211,7 @@ class AppPreferences {
   val vibeShareTimeOff = mkBoolPreference("VibeShareTimeOff", false)
   val vibeSendHd = mkBoolPreference("VibeSendHd", false)
   val vibeBackupUri = mkStrPreference("VibeBackupUri", null)
+  val vibeMyHdKey = mkStrPreference("VibeMyHdKey", null)
   val vibeBackupEvery = mkIntPreference("VibeBackupEvery", 0)
   val vibeBackupWifi = mkBoolPreference("VibeBackupWifi", true)
   val vibeBackupLast = mkLongPreference("VibeBackupLast", 0L)
