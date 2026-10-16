@@ -2,7 +2,6 @@ package chat.simplex.common.views.vibe
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -13,8 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import chat.simplex.common.platform.chatModel
-import chat.simplex.res.MR
-import dev.icerock.moko.resources.compose.painterResource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -70,9 +67,22 @@ fun VibeLaunchOverlay() {
         scaleX = s; scaleY = s
       }
     ) {
-      Image(painterResource(MR.images.vibe_logo_nodots), null, Modifier.fillMaxSize())
+      // just the 💬: the blue bubble drawn here (no square behind it), dots on top
       Canvas(Modifier.fillMaxSize()) {
         val k = size.width / 384f
+        val blue = Color(0xFF226EFD)
+        drawRoundRect(
+          blue, topLeft = Offset(51f * k, 106f * k), size = androidx.compose.ui.geometry.Size(281f * k, 142f * k),
+          cornerRadius = androidx.compose.ui.geometry.CornerRadius(71f * k)
+        )
+        val tail = androidx.compose.ui.graphics.Path().apply {
+          moveTo(80f * k, 222f * k)
+          lineTo(77f * k, 270f * k)
+          quadraticTo(77f * k, 281f * k, 87f * k, 276f * k)
+          lineTo(132f * k, 243f * k)
+          close()
+        }
+        drawPath(tail, blue)
         for (i in 0 until 3) {
           val lift = hop[i].value * 16f * k
           drawCircle(Color.White, dotR * k, Offset(dotX[i] * k, dotY * k - lift))
