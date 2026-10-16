@@ -271,11 +271,12 @@ fun Modifier.vibeSwipeReply(enabled: Boolean, onReply: () -> Unit): Modifier = c
 fun VibeTicks(ci: ChatItem, modifier: Modifier = Modifier) {
   if (!ci.chatDir.sent) return
   val dim = VibeColors.onVariant()
+  val ink = if (VibeColors.isDark()) dim else Color(0xFF111214)
   when (val s = ci.meta.itemStatus) {
-    // dots instead of ticks: one while it goes out, one grey once sent, two grey once on their phone
-    is CIStatus.SndNew -> if (!ci.meta.isLive) VibeStatusDots(1, dim, modifier, pulsing = true)
-    is CIStatus.SndSent -> VibeStatusDots(1, dim, modifier)
-    is CIStatus.SndRcvd -> VibeStatusDots(2, dim, modifier)
+    // dots instead of ticks: one while it goes out, one once sent (grey, black in light mode), two blue once on their phone
+    is CIStatus.SndNew -> if (!ci.meta.isLive) VibeStatusDots(1, ink, modifier, pulsing = true)
+    is CIStatus.SndSent -> VibeStatusDots(1, ink, modifier)
+    is CIStatus.SndRcvd -> VibeStatusDots(2, VibeColors.blurple, modifier)
     is CIStatus.SndErrorAuth, is CIStatus.CISSndError -> Row(modifier, verticalAlignment = Alignment.CenterVertically) {
       Icon(VibeIcons.Error, null, Modifier.size(16.dp), tint = VibeColors.red)
       Spacer(Modifier.width(4.dp))
