@@ -28,7 +28,7 @@ import chat.simplex.common.views.helpers.openUriCatching
 @Composable
 fun VibeLinkCard(preview: LinkPreview, onLongClick: () -> Unit) {
   val uri = LocalUriHandler.current
-  val image = remember(preview.image) { runCatching { base64ToBitmap(preview.image) }.getOrNull() }
+  val image = remember(preview.image) { runCatching { base64ToBitmap(preview.image) }.getOrNull()?.takeIf { it.width > 2 && it.height > 2 } }
   val square = image != null && image.width * 1.3f >= image.height && image.height * 1.3f >= image.width
   val host = remember(preview.uri) { runCatching { java.net.URI(preview.uri).host?.removePrefix("www.") }.getOrNull() ?: preview.uri }
   val bar = VibeColors.blurple

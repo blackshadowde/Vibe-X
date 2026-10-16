@@ -39,6 +39,9 @@ import java.util.UUID
 private const val OG_SELECT_QUERY = "meta[property^=og:]"
 private const val ICON_SELECT_QUERY = "link[rel^=icon],link[rel^=apple-touch-icon],link[rel^=shortcut icon]"
 private val IMAGE_SUFFIXES = listOf(".jpg", ".png", ".ico", ".webp", ".gif")
+private const val PREVIEW_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"
+/** A see-through 1x1 picture, for links without one (the card then shows no picture). */
+const val NO_PREVIEW_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
 // Authenticator.setDefault is process-global. The mutex serializes preview fetches
 // so concurrent calls cannot clobber each other's authenticator, and so the
@@ -87,6 +90,7 @@ suspend fun getLinkPreview(url: String): LinkPreview? {
             proxy = null
             Authenticator.setDefault(null)
           }
+          var description = ""
           var imageUri = when {
             IMAGE_SUFFIXES.any { u.path.lowercase().endsWith(it) } -> {
               title = u.path.substringAfterLast("/")
@@ -98,6 +102,7 @@ suspend fun getLinkPreview(url: String): LinkPreview? {
                 .timeout(10000)
                 .followRedirects(true)
                 .proxy(proxy)
+                .header("Accept-Language", "en-US,en;q=0.9")
 
               val response = if (url.lowercase().startsWith("https://x.com/")) {
                 // Apple sends request with special user-agent which handled differently by X.com.
@@ -106,35 +111,37 @@ suspend fun getLinkPreview(url: String): LinkPreview? {
                   .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/601.2.4 (KHTML, like Gecko) Version/9.0.1 Safari/601.2.4 facebookexternalhit/1.1 Facebot Twitterbot/1.0")
                   .execute()
               } else {
+                // Vibe X: a normal phone browser; many sites refuse unknown clients
                 connection
+                  .userAgent(PREVIEW_UA)
                   .execute()
               }
               val doc = response.parse()
-              val ogTags = doc.select(OG_SELECT_QUERY)
-              title = ogTags.firstOrNull { it.attr("property") == "og:title" }?.attr("content") ?: doc.title()
-              ogTags.firstOrNull { it.attr("property") == "og:image" }?.attr("content")
+              fun meta(key: String): String? =
+                doc.selectFirst("meta[property=\"$key\"], meta[name=\"$key\"]")?.attr("content")?.trim()?.ifEmpty { null }
+              title = meta("og:title") ?: meta("twitter:title") ?: doc.title().trim().ifEmpty { null }
+              description = (meta("og:description") ?: meta("twitter:description") ?: meta("description") ?: "").take(300)
+              meta("og:image") ?: meta("og:image:url") ?: meta("og:image:secure_url") ?: meta("twitter:image") ?: meta("twitter:image:src")
                 ?: doc.select(ICON_SELECT_QUERY).firstOrNull { it.attr("rel").contains("icon") }?.attr("href")
+                ?: "/favicon.ico"
             }
           }
+          var image: String? = null
           if (imageUri != null) {
             imageUri = normalizeImageUri(u, imageUri)
             try {
               val conn = URL(imageUri).openConnection(proxy ?: Proxy.NO_PROXY)
-              conn.connectTimeout = 20_000
-              conn.readTimeout = 20_000
+              conn.connectTimeout = 15_000
+              conn.readTimeout = 15_000
+              conn.setRequestProperty("User-Agent", PREVIEW_UA)
               val stream = conn.getInputStream()
-              val image = resizeImageToStrSize(stream.use(::loadImageBitmap), maxDataSize = 14000)
-              //          TODO add once supported in iOS
-              //          val description = ogTags.firstOrNull {
-              //            it.attr("property") == "og:description"
-              //          }?.attr("content") ?: ""
-              if (title != null) {
-                return@withLock LinkPreview(url, title, description = "", image)
-              }
+              image = resizeImageToStrSize(stream.use(::loadImageBitmap), maxDataSize = 14000)
             } catch (e: Exception) {
               e.printStackTrace()
             }
           }
+          // Vibe X: a card even when the site has no picture (or it won't load)
+          return@withLock LinkPreview(url, title?.ifBlank { null } ?: u.host.removePrefix("www."), description, image ?: NO_PREVIEW_IMAGE)
         } catch (e: Exception) {
           e.printStackTrace()
         }

@@ -62,7 +62,7 @@ fun vibeNameColor(name: String): Color = avatarColors[(name.hashCode() and 0x7ff
  */
 @Composable
 fun VibeAvatar(image: String?, name: String, size: Dp, modifier: Modifier = Modifier, shape: Shape = CircleShape) {
-  val bitmap = remember(image) { image?.let { runCatching { base64ToBitmap(it) }.getOrNull() } }
+  val bitmap = remember(image) { vibeBitmap(image) }
   Box(modifier.size(size).clip(shape), contentAlignment = Alignment.Center) {
     if (bitmap != null) {
       Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -183,4 +183,20 @@ object VibeIcons {
   val Refresh = icon("refresh", "M17.65,6.35C16.2,4.9 14.21,4 12,4c-4.42,0 -7.99,3.58 -7.99,8s3.57,8 7.99,8c3.73,0 6.84,-2.55 7.73,-6h-2.08c-0.82,2.33 -3.04,4 -5.65,4 -3.31,0 -6,-2.69 -6,-6s2.69,-6 6,-6c1.66,0 3.14,0.69 4.22,1.78L13,11h7V4l-2.35,2.35z")
   val SendOutlined = icon("sendOutlined", "M4.01,6.03l7.51,3.22 -7.52,-1 0.01,-2.22M11.51,14.75L4,17.97v-2.22l7.51,-1M2.01,3L2,10l15,2 -15,2 0.01,7L23,12 2.01,3z")
   val Delete = icon("delete", "M6,19c0,1.1 0.9,2 2,2h8c1.1,0 2,-0.9 2,-2V7H6v12zM19,4h-3.5l-1,-1h-5l-1,1H5v2h14V4z")
+}
+
+/**
+ * Profile pictures decoded once and kept (the last 100), so lists don't
+ * decode the same picture again every time a row scrolls into view.
+ */
+private val bitmapCache = object : java.util.LinkedHashMap<String, androidx.compose.ui.graphics.ImageBitmap>(64, 0.75f, true) {
+  override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, androidx.compose.ui.graphics.ImageBitmap>?) = size > 100
+}
+
+fun vibeBitmap(image: String?): androidx.compose.ui.graphics.ImageBitmap? {
+  if (image.isNullOrEmpty()) return null
+  synchronized(bitmapCache) { bitmapCache[image]?.let { return it } }
+  val b = runCatching { base64ToBitmap(image) }.getOrNull() ?: return null
+  synchronized(bitmapCache) { bitmapCache[image] = b }
+  return b
 }

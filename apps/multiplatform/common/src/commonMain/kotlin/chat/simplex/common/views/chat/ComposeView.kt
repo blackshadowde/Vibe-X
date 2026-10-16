@@ -1204,7 +1204,8 @@ fun ComposeView(
         ::cancelImages,
         cancelEnabled = !composeState.value.editing && !composeState.value.inProgress
       )
-      is ComposePreview.VoicePreview -> ComposeVoiceView(
+      // Vibe: a voice note goes straight out, so its preview row never flashes up
+      is ComposePreview.VoicePreview -> if (!(vibeStyle && (!preview.finished || VibeVoiceSend.pending.value))) ComposeVoiceView(
         preview.voice,
         preview.durationMs,
         preview.finished,

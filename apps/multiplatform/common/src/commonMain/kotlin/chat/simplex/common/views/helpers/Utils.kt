@@ -170,7 +170,18 @@ fun saveImage(uri: URI, maxDataSize: Long = MAX_IMAGE_SIZE): CryptoFile? {
   return saveImage(bitmap, maxDataSize)
 }
 
-fun saveImage(image: ImageBitmap, maxDataSize: Long = MAX_IMAGE_SIZE): CryptoFile? {
+fun saveImage(original: ImageBitmap, maxDataSize: Long = MAX_IMAGE_SIZE): CryptoFile? {
+  // Vibe X: shrink a big photo close to its final size first, so it's compressed once or twice
+  // instead of re-encoding the full 12 MP picture several times (the slow part of sending a photo)
+  val image = run {
+    val px = original.width.toLong() * original.height
+    val budget = maxDataSize * 4 // a JPEG at this quality takes about 0.25 bytes a pixel
+    if (px <= budget * 13 / 10) original
+    else runCatching {
+      val s = kotlin.math.sqrt(budget.toDouble() / px)
+      original.scale(maxOf(1, (original.width * s).toInt()), maxOf(1, (original.height * s).toInt()))
+    }.getOrDefault(original)
+  }
   return try {
     val encrypted = chatController.appPrefs.privacyEncryptLocalFiles.get()
     val ext = if (image.hasAlpha()) "png" else "jpg"

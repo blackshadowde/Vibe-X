@@ -56,6 +56,7 @@ class MainActivity: FragmentActivity() {
       )
     }
     enableEdgeToEdge()
+    preferHighRefreshRate()
     setContent {
       AppScreen()
     }
@@ -71,7 +72,31 @@ class MainActivity: FragmentActivity() {
 
   override fun onResume() {
     super.onResume()
+    preferHighRefreshRate()
     AppLock.recheckAuthState()
+  }
+
+  /**
+   * Vibe X: ask for the screen's fastest refresh rate (120 / 144 Hz), at the
+   * current resolution, so scrolling and animations run as smooth as the
+   * phone allows. Many phones keep apps at 60 Hz unless they ask.
+   */
+  private fun preferHighRefreshRate() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+    runCatching {
+      @Suppress("DEPRECATION")
+      val d = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display else windowManager.defaultDisplay) ?: return
+      val cur = d.mode
+      val best = d.supportedModes
+        .filter { it.physicalWidth == cur.physicalWidth && it.physicalHeight == cur.physicalHeight }
+        .maxByOrNull { it.refreshRate } ?: return
+      if (best.refreshRate <= 61f) return
+      val attrs = window.attributes
+      if (attrs.preferredDisplayModeId != best.modeId) {
+        attrs.preferredDisplayModeId = best.modeId
+        window.attributes = attrs
+      }
+    }
   }
 
   override fun onPause() {
