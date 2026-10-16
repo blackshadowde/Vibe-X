@@ -138,6 +138,14 @@ fun VibeWelcome(chatModel: ChatModel, onDone: (() -> Unit)? = null) {
         }
       }
       if (pager.currentPage == 0 && chatModel.currentUser.value == null) {
+        val restorePick = rememberVibeRestorePicker { picked -> if (picked != null) VibeBackup.restore(picked) }
+        Text(
+          vt("Have a backup in Drive? Restore it"),
+          Modifier.align(Alignment.CenterHorizontally).clip(RoundedCornerShape(8.dp))
+            .clickable { restorePick() }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+          fontSize = 13.sp, color = lavender
+        )
         Text(
           "Moving from another phone? Migrate here",
           Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp).clip(RoundedCornerShape(8.dp))
