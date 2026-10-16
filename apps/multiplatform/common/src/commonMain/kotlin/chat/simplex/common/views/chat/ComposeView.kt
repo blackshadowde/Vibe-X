@@ -826,6 +826,26 @@ fun ComposeView(
       clearCurrentDraft(toChat)
     }
 
+    // Vibe: a live message (your words, or the typing dots) is finished by editing it into the message.
+    // Never finish it empty (it would arrive as a blank message), and since an edit can't add a reply,
+    // a reply is sent as a new message: either way the live one is taken back.
+    var liveToUse = liveMessage
+    if (vibeStyle && !live && liveMessage != null && liveMessage.sent) {
+      val blank = msgText.isBlank() && cs.preview is ComposePreview.NoPreview
+      val replyLost = cs.contextItem is ComposeContextItem.QuotedItem && liveMessage.chatItem.quotedItem == null
+      if (blank || replyLost) {
+        val info = toChat.chatInfo
+        runCatching {
+          chatModel.controller.apiDeleteChatItems(toChat.remoteHostId, info.chatType, info.apiId, info.groupChatScope(), listOf(liveMessage.chatItem.id), CIDeleteMode.cidmBroadcast)
+        }
+        liveToUse = null
+        if (blank) {
+          withContext(Dispatchers.Main) { if (composeIsForSend() && chatModel.chatId.value == chat.id) clearState() }
+          return null
+        }
+      }
+    }
+
     if (cs.contextItem is ComposeContextItem.ForwardingItems) {
       sent = forwardItem(chat.remoteHostId, cs.contextItem.chatItems, cs.contextItem.fromChatInfo, ttl = ttl)
       if (sent == null) {
@@ -848,8 +868,8 @@ fun ComposeView(
       val updatedMessage = updateMessage(ei, chat, live)
       sent = if (updatedMessage != null) listOf(updatedMessage) else null
       lastMessageFailedToSend = if (updatedMessage == null) constructFailedMessage(cs) else null
-    } else if (liveMessage != null && liveMessage.sent) {
-      val updatedMessage = updateMessage(liveMessage.chatItem, toChat, live)
+    } else if (liveToUse != null && liveToUse.sent) {
+      val updatedMessage = updateMessage(liveToUse.chatItem, toChat, live)
       sent = if (updatedMessage != null) listOf(updatedMessage) else null
     } else if (cs.contextItem is ComposeContextItem.ReportedItem) {
       sent = sendReport(cs.contextItem.reason, cs.contextItem.chatItem.id)

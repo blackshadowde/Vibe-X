@@ -216,8 +216,8 @@ fun ChatItem.vibeInvisible(): Boolean {
   // a live one is someone typing right now: that shows as the typing dots
   if (meta.isLive || file != null || quotedItem != null) return false
   val mc = content.msgContent as? MsgContent.MCText ?: return false
-  val raw = mc.text
-  return raw.isNotEmpty() && raw.replace(invisibleChars, "").isEmpty()
+  // (SimpleX never sends an empty text on purpose: an empty one is a typing message finished by mistake)
+  return mc.text.replace(invisibleChars, "").isEmpty()
 }
 
 /**
