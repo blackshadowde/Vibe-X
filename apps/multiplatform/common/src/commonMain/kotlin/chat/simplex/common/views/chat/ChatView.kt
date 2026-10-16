@@ -2634,6 +2634,8 @@ private fun SmallScrollOnNewMessage(listState: State<LazyListState>, reversedCha
         try {
           if (listState.value.firstVisibleItemIndex == 0 || listState.value.firstVisibleItemIndex == 1) {
             if (appPlatform.isAndroid) listState.value.animateScrollToItem(0) else listState.value.scrollToItem(0)
+          } else if (vibeStyle) {
+            // Vibe: reading older messages, you stay exactly where you are; the pill says what's new
           } else {
             if (appPlatform.isAndroid) listState.value.animateScrollBy(scrollDistance) else listState.value.scrollBy(scrollDistance)
           }
@@ -3361,6 +3363,10 @@ private fun BoxScope.BottomEndFloatingButton(
   composeViewHeight: State<Dp>,
   onClick: () -> Unit
 ) {
+  if (vibeStyle) {
+    VibeJumpPill(unreadCount, showButtonWithCounter, showButtonWithArrow, requestedBottomScroll, animatedScrollingInProgress, composeViewHeight, onClick)
+    return
+  }
   when {
     showButtonWithCounter.value && !animatedScrollingInProgress.value -> {
       FloatingActionButton(
@@ -4107,5 +4113,57 @@ enum class ContentFilter(
     val alwaysShow: Set<MsgContentTag> = setOf(MsgContentTag.Image, MsgContentTag.Link)
 
     val initialList: List<ContentFilter> = listOf(ContentFilter.Images, ContentFilter.Files, ContentFilter.Links)
+  }
+}
+
+/**
+ * Vibe: while you read older messages, a pill above the message box: "3 new
+ * messages" in blurple when something new came in below, or "Jump to
+ * present" otherwise. Tap it to go down.
+ */
+@Composable
+private fun BoxScope.VibeJumpPill(
+  unreadCount: State<Int>,
+  showButtonWithCounter: State<Boolean>,
+  showButtonWithArrow: State<Boolean>,
+  requestedBottomScroll: State<Boolean>,
+  animatedScrollingInProgress: State<Boolean>,
+  composeViewHeight: State<Dp>,
+  onClick: () -> Unit
+) {
+  val withCount = showButtonWithCounter.value
+  val visible = (withCount || showButtonWithArrow.value) && !animatedScrollingInProgress.value
+  // remember the last count so the pill doesn't change words while it slides away
+  val lastCount = remember { mutableStateOf(0) }
+  if (withCount && unreadCount.value > 0) lastCount.value = unreadCount.value
+  AnimatedVisibility(
+    visible,
+    Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp + composeViewHeight.value),
+    enter = slideInVertically(VibeSprings.pop()) { it } + fadeIn(),
+    exit = slideOutVertically(tween(180)) { it } + fadeOut(tween(180)),
+  ) {
+    val bg = if (withCount) VibeColors.blurple else VibeColors.high()
+    val fg = if (withCount) Color.White else VibeColors.onSurface()
+    Row(
+      Modifier
+        .shadow(8.dp, RoundedCornerShape(20.dp))
+        .clip(RoundedCornerShape(20.dp))
+        .background(bg)
+        .clickable { VibeHaptics.light(); onClick() }
+        .padding(horizontal = 16.dp, vertical = 9.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      if (requestedBottomScroll.value) {
+        CircularProgressIndicator(Modifier.size(16.dp), color = fg, strokeWidth = 2.dp)
+      } else {
+        Icon(painterResource(MR.images.ic_keyboard_arrow_down), null, Modifier.size(18.dp), tint = fg)
+      }
+      Spacer(Modifier.width(6.dp))
+      val n = lastCount.value
+      Text(
+        if (withCount) (if (n == 1) vt("1 new message") else "$n ${vt("new messages")}") else vt("Jump to present"),
+        color = fg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold
+      )
+    }
   }
 }

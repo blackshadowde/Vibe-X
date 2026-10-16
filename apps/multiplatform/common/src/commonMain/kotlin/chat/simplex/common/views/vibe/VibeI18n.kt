@@ -9,6 +9,9 @@ import chat.simplex.common.platform.appPreferences
  */
 object VibeI18n {
   private val hi: Map<String, String> by lazy { mapOf(
+    "1 new message" to "1 नया संदेश",
+    "new messages" to "नए संदेश",
+    "Jump to present" to "नए संदेशों पर जाएँ",
     "Chat backup" to "चैट बैकअप",
     "Last backup" to "पिछला बैकअप",
     "Backing up…" to "बैकअप हो रहा है…",
@@ -310,6 +313,9 @@ object VibeI18n {
     "VIBE X" to "VIBE X",
   ) }
   private val te: Map<String, String> by lazy { mapOf(
+    "1 new message" to "1 కొత్త సందేశం",
+    "new messages" to "కొత్త సందేశాలు",
+    "Jump to present" to "తాజా సందేశాలకు వెళ్ళు",
     "Chat backup" to "చాట్ బ్యాకప్",
     "Last backup" to "చివరి బ్యాకప్",
     "Backing up…" to "బ్యాకప్ అవుతోంది…",
