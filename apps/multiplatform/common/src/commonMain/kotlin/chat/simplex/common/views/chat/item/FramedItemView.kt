@@ -354,7 +354,7 @@ fun FramedItemView(
               is MsgContent.MCLink -> if (vibeRow) {
                 // Discord style: the text, then the link's card under it
                 CIMarkdownText(chatsCtx, ci, chat, chatTTL, linkMode, uriHandler, onLinkLongClick, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
-                VibeLinkCard(mc.preview, onLongClick = { showMenu.value = true })
+                VibeAutoLinkCard(ci, mc.preview, onLongClick = { showMenu.value = true })
               } else {
                 ChatItemLinkView(mc.preview, showMenu, onLongClick = { showMenu.value = true })
                 Box(Modifier.widthIn(max = DEFAULT_MAX_IMAGE_WIDTH)) {
@@ -385,7 +385,11 @@ fun FramedItemView(
                 }
                 CIMarkdownText(chatsCtx, ci, chat, chatTTL, linkMode, uriHandler, onLinkLongClick, showViaProxy = showViaProxy, showTimestamp = showTimestamp, prefix = prefix)
               }
-              else -> CIMarkdownText(chatsCtx, ci, chat, chatTTL, linkMode, uriHandler, onLinkLongClick, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
+              else -> {
+                CIMarkdownText(chatsCtx, ci, chat, chatTTL, linkMode, uriHandler, onLinkLongClick, showViaProxy = showViaProxy, showTimestamp = showTimestamp)
+                // Vibe: a card for a link sent without a preview, looked up on this phone
+                if (vibeRow && mc is MsgContent.MCText && !ci.meta.isLive) VibeAutoLinkCard(ci, null, onLongClick = { showMenu.value = true })
+              }
             }
           }
         }

@@ -40,6 +40,9 @@ private const val OG_SELECT_QUERY = "meta[property^=og:]"
 private const val ICON_SELECT_QUERY = "link[rel^=icon],link[rel^=apple-touch-icon],link[rel^=shortcut icon]"
 private val IMAGE_SUFFIXES = listOf(".jpg", ".png", ".ico", ".webp", ".gif")
 private const val PREVIEW_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"
+private const val CRAWLER_UA = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
+// Apple sends request with special user-agent which handled differently by X.com (gives the video poster)
+private const val X_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/601.2.4 (KHTML, like Gecko) Version/9.0.1 Safari/601.2.4 facebookexternalhit/1.1 Facebot Twitterbot/1.0"
 /** A see-through 1x1 picture, for links without one (the card then shows no picture). */
 const val NO_PREVIEW_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
@@ -48,6 +51,87 @@ const val NO_PREVIEW_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEA
 // snapshot/restore in getLinkPreview is race-free.
 private val previewMutex = Mutex()
 
+/** Sets up the SOCKS proxy (and its credentials) for a preview fetch; call under [previewMutex]. */
+private fun previewProxy(): Proxy? {
+  val useSocksProxy = appPrefs.networkUseSocksProxy.get()
+  if (!useSocksProxy) {
+    Authenticator.setDefault(null)
+    return null
+  }
+  val networkProxy = appPrefs.networkProxy.get()
+  val proxy = Proxy(Proxy.Type.SOCKS, InetSocketAddress(networkProxy.host, networkProxy.port))
+  val (authUser, authPass) = when (networkProxy.auth) {
+    NetworkProxyAuth.USERNAME ->
+      if (networkProxy.username.isNotEmpty() && networkProxy.password.isNotEmpty())
+        networkProxy.username to networkProxy.password
+      else
+        null to null
+    // Per-call random credentials drive Tor-style stream isolation: each
+    // preview gets its own circuit, and previews don't share a circuit
+    // with other unauthenticated traffic on the proxy.
+    NetworkProxyAuth.ISOLATE ->
+      UUID.randomUUID().toString() to UUID.randomUUID().toString()
+  }
+  if (authUser != null && authPass != null) {
+    Authenticator.setDefault(object : Authenticator() {
+      override fun getPasswordAuthentication(): PasswordAuthentication? =
+        // Only respond when the SOCKS proxy itself challenges. A destination
+        // server returning 401 also triggers RequestorType.SERVER; without
+        // this gate, the JDK's auto-retry would post our SOCKS credentials
+        // in an Authorization header to the destination.
+        if (requestingHost == networkProxy.host && requestingPort == networkProxy.port)
+          PasswordAuthentication(authUser, authPass.toCharArray())
+        else null
+    })
+  } else {
+    Authenticator.setDefault(null)
+  }
+  return proxy
+}
+
+/**
+ * The page, asked for the way link-preview crawlers ask (sites like
+ * Instagram and Facebook only give their titles, descriptions and pictures
+ * to those), then as a phone browser if that doesn't work.
+ */
+private fun fetchPreviewDoc(url: String, proxy: Proxy?): org.jsoup.nodes.Document? {
+  val agents = if (url.lowercase().startsWith("https://x.com/")) listOf(X_UA, CRAWLER_UA, PREVIEW_UA) else listOf(CRAWLER_UA, PREVIEW_UA)
+  var fallback: org.jsoup.nodes.Document? = null
+  for (ua in agents) {
+    val doc = runCatching {
+      Jsoup.connect(url)
+        .ignoreContentType(true)
+        .timeout(10000)
+        .followRedirects(true)
+        .proxy(proxy)
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .userAgent(ua)
+        .execute()
+        .parse()
+    }.getOrNull() ?: continue
+    if (doc.selectFirst("meta[property=\"og:title\"], meta[name=\"og:title\"], meta[name=\"twitter:title\"], meta[property=\"twitter:title\"]") != null) return doc
+    if (fallback == null) fallback = doc
+  }
+  return fallback
+}
+
+private fun org.jsoup.nodes.Document.meta(key: String): String? =
+  selectFirst("meta[property=\"$key\"], meta[name=\"$key\"]")?.attr("content")?.trim()?.ifEmpty { null }
+
+private fun org.jsoup.nodes.Document.previewImageUri(): String? =
+  meta("og:image") ?: meta("og:image:url") ?: meta("og:image:secure_url") ?: meta("twitter:image") ?: meta("twitter:image:src")
+
+private fun downloadPreviewImage(imageUri: String, proxy: Proxy?): androidx.compose.ui.graphics.ImageBitmap? = try {
+  val conn = URL(imageUri).openConnection(proxy ?: Proxy.NO_PROXY)
+  conn.connectTimeout = 15_000
+  conn.readTimeout = 15_000
+  conn.setRequestProperty("User-Agent", CRAWLER_UA)
+  conn.getInputStream().use(::loadImageBitmap)
+} catch (e: Exception) {
+  Log.d(TAG, "preview image failed: ${e.message}")
+  null
+}
+
 suspend fun getLinkPreview(url: String): LinkPreview? {
   return withContext(Dispatchers.IO) {
     previewMutex.withLock {
@@ -55,41 +139,7 @@ suspend fun getLinkPreview(url: String): LinkPreview? {
         try {
           val title: String?
           val u = kotlin.runCatching { URL(url) }.getOrNull() ?: return@withLock null
-          val useSocksProxy = appPrefs.networkUseSocksProxy.get()
-          val proxy: Proxy?
-          if (useSocksProxy) {
-            val networkProxy = appPrefs.networkProxy.get()
-            proxy = Proxy(Proxy.Type.SOCKS, InetSocketAddress(networkProxy.host, networkProxy.port))
-            val (authUser, authPass) = when (networkProxy.auth) {
-              NetworkProxyAuth.USERNAME ->
-                if (networkProxy.username.isNotEmpty() && networkProxy.password.isNotEmpty())
-                  networkProxy.username to networkProxy.password
-                else
-                  null to null
-              // Per-call random credentials drive Tor-style stream isolation: each
-              // preview gets its own circuit, and previews don't share a circuit
-              // with other unauthenticated traffic on the proxy.
-              NetworkProxyAuth.ISOLATE ->
-                UUID.randomUUID().toString() to UUID.randomUUID().toString()
-            }
-            if (authUser != null && authPass != null) {
-              Authenticator.setDefault(object : Authenticator() {
-                override fun getPasswordAuthentication(): PasswordAuthentication? =
-                  // Only respond when the SOCKS proxy itself challenges. A destination
-                  // server returning 401 also triggers RequestorType.SERVER; without
-                  // this gate, the JDK's auto-retry would post our SOCKS credentials
-                  // in an Authorization header to the destination.
-                  if (requestingHost == networkProxy.host && requestingPort == networkProxy.port)
-                    PasswordAuthentication(authUser, authPass.toCharArray())
-                  else null
-              })
-            } else {
-              Authenticator.setDefault(null)
-            }
-          } else {
-            proxy = null
-            Authenticator.setDefault(null)
-          }
+          val proxy = previewProxy()
           var description = ""
           var imageUri = when {
             IMAGE_SUFFIXES.any { u.path.lowercase().endsWith(it) } -> {
@@ -97,31 +147,10 @@ suspend fun getLinkPreview(url: String): LinkPreview? {
               url
             }
             else -> {
-              val connection = Jsoup.connect(url)
-                .ignoreContentType(true)
-                .timeout(10000)
-                .followRedirects(true)
-                .proxy(proxy)
-                .header("Accept-Language", "en-US,en;q=0.9")
-
-              val response = if (url.lowercase().startsWith("https://x.com/")) {
-                // Apple sends request with special user-agent which handled differently by X.com.
-                // Different response that includes video poster from post
-                connection
-                  .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/601.2.4 (KHTML, like Gecko) Version/9.0.1 Safari/601.2.4 facebookexternalhit/1.1 Facebot Twitterbot/1.0")
-                  .execute()
-              } else {
-                // Vibe X: a normal phone browser; many sites refuse unknown clients
-                connection
-                  .userAgent(PREVIEW_UA)
-                  .execute()
-              }
-              val doc = response.parse()
-              fun meta(key: String): String? =
-                doc.selectFirst("meta[property=\"$key\"], meta[name=\"$key\"]")?.attr("content")?.trim()?.ifEmpty { null }
-              title = meta("og:title") ?: meta("twitter:title") ?: doc.title().trim().ifEmpty { null }
-              description = (meta("og:description") ?: meta("twitter:description") ?: meta("description") ?: "").take(300)
-              meta("og:image") ?: meta("og:image:url") ?: meta("og:image:secure_url") ?: meta("twitter:image") ?: meta("twitter:image:src")
+              val doc = fetchPreviewDoc(url, proxy) ?: return@withLock null
+              title = doc.meta("og:title") ?: doc.meta("twitter:title") ?: doc.title().trim().ifEmpty { null }
+              description = (doc.meta("og:description") ?: doc.meta("twitter:description") ?: doc.meta("description") ?: "").take(300)
+              doc.previewImageUri()
                 ?: doc.select(ICON_SELECT_QUERY).firstOrNull { it.attr("rel").contains("icon") }?.attr("href")
                 ?: "/favicon.ico"
             }
@@ -129,16 +158,7 @@ suspend fun getLinkPreview(url: String): LinkPreview? {
           var image: String? = null
           if (imageUri != null) {
             imageUri = normalizeImageUri(u, imageUri)
-            try {
-              val conn = URL(imageUri).openConnection(proxy ?: Proxy.NO_PROXY)
-              conn.connectTimeout = 15_000
-              conn.readTimeout = 15_000
-              conn.setRequestProperty("User-Agent", PREVIEW_UA)
-              val stream = conn.getInputStream()
-              image = resizeImageToStrSize(stream.use(::loadImageBitmap), maxDataSize = 14000)
-            } catch (e: Exception) {
-              e.printStackTrace()
-            }
+            image = downloadPreviewImage(imageUri, proxy)?.let { runCatching { resizeImageToStrSize(it, maxDataSize = 14000) }.getOrNull() }
           }
           // Vibe X: a card even when the site has no picture (or it won't load)
           return@withLock LinkPreview(url, title?.ifBlank { null } ?: u.host.removePrefix("www."), description, image ?: NO_PREVIEW_IMAGE)
@@ -151,6 +171,49 @@ suspend fun getLinkPreview(url: String): LinkPreview? {
       }
     }
   }
+}
+
+/** What Vibe X shows in a link card: fetched on this phone, with a sharper picture than fits in a message. */
+class VibeLinkInfo(
+  val url: String,
+  val title: String?,
+  val description: String?,
+  val site: String?,
+  val image: androidx.compose.ui.graphics.ImageBitmap?,
+)
+
+suspend fun vibeFetchLinkInfo(url: String): VibeLinkInfo? {
+  return withContext(Dispatchers.IO) {
+    previewMutex.withLock {
+      try {
+        val u = kotlin.runCatching { URL(url) }.getOrNull() ?: return@withLock null
+        val proxy = previewProxy()
+        if (IMAGE_SUFFIXES.any { u.path.lowercase().endsWith(it) }) {
+          val img = downloadPreviewImage(url, proxy) ?: return@withLock null
+          return@withLock VibeLinkInfo(url, null, null, u.host.removePrefix("www."), shrinkPreview(img))
+        }
+        val doc = fetchPreviewDoc(url, proxy) ?: return@withLock null
+        val title = doc.meta("og:title") ?: doc.meta("twitter:title") ?: doc.title().trim().ifEmpty { null }
+        val description = doc.meta("og:description") ?: doc.meta("twitter:description") ?: doc.meta("description")
+        val site = doc.meta("og:site_name")
+        val image = doc.previewImageUri()?.let { downloadPreviewImage(normalizeImageUri(u, it), proxy) }?.let(::shrinkPreview)
+        if (title == null && description == null && image == null) return@withLock null
+        VibeLinkInfo(url, title, description?.take(400), site, image)
+      } catch (e: Exception) {
+        Log.d(TAG, "vibeFetchLinkInfo failed: ${e.message}")
+        null
+      } finally {
+        Authenticator.setDefault(null)
+      }
+    }
+  }
+}
+
+private fun shrinkPreview(b: androidx.compose.ui.graphics.ImageBitmap): androidx.compose.ui.graphics.ImageBitmap {
+  val max = 900
+  if (b.width <= max && b.height <= max) return b
+  val s = max.toFloat() / maxOf(b.width, b.height)
+  return runCatching { b.scale(maxOf(1, (b.width * s).toInt()), maxOf(1, (b.height * s).toInt())) }.getOrDefault(b)
 }
 
 @Composable
