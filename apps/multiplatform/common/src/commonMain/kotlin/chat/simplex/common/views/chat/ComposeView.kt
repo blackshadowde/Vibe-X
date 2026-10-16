@@ -866,7 +866,7 @@ fun ComposeView(
           preview.content.forEachIndexed { index, it ->
             val file = when (it) {
               is UploadContent.SimpleImage ->
-                if (remoteHost == null) saveImage(it.uri)
+                if (remoteHost == null) saveImage(it.uri, if (vibeStyle && VibeMediaSend.hd) VIBE_HD_IMAGE_SIZE else MAX_IMAGE_SIZE)
                 else desktopSaveImageInTmp(it.uri)
               is UploadContent.AnimatedImage ->
                 if (remoteHost == null) saveAnimImage(it.uri)
@@ -1715,10 +1715,27 @@ fun ComposeView(
   }
 
   // Vibe: "Send N" in the + pane sends the picked photos as soon as they're attached
+  // Vibe: picked photos and videos come up in Vibe's send pop-up (preview, caption, HD) before they go
   LaunchedEffect(composeState.value.preview) {
-    if (VibeAttachSend.pending.value && composeState.value.preview is ComposePreview.MediaPreview) {
+    val p = composeState.value.preview
+    if (p is ComposePreview.MediaPreview) {
       VibeAttachSend.pending.value = false
-      sendMessage(null)
+      if (vibeStyle) {
+        VibeMediaSend.open(
+          preview = p,
+          caption = composeState.value.message.text,
+          send = { caption, hd ->
+            if (composeState.value.preview === p) {
+              VibeMediaSend.hd = hd
+              if (caption != composeState.value.message.text) onMessageChange(ComposeMessage(caption))
+              sendMessage(null)
+            }
+          },
+          cancel = {
+            if (composeState.value.preview === p) composeState.value = composeState.value.copy(preview = ComposePreview.NoPreview)
+          },
+        )
+      }
     }
   }
 

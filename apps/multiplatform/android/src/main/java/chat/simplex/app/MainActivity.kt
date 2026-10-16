@@ -42,6 +42,8 @@ class MainActivity: FragmentActivity() {
     // When call ended and orientation changes, it re-process old intent, it's unneeded.
     // Only needed to be processed on first creation of activity
     if (savedInstanceState == null) {
+      // Vibe X: a fresh launch starts on Home (a notification tap below still opens its chat)
+      if (chatModel.activeCall.value == null) chat.simplex.common.views.vibe.VibeNav.freshStart()
       processNotificationIntent(intent)
       processIntent(intent)
       processExternalIntent(intent)

@@ -210,6 +210,8 @@ fun MainScreen() {
       if (vibeStyle) {
         VibeActivityHost()
         VibeSheetHost()
+        VibeMediaSendHost()
+        VibeScreenFxHost()
       }
     }
 
@@ -256,6 +258,7 @@ fun MainScreen() {
     val invitation = chatModel.activeCallInvitation.value
     if (invitation != null) IncomingCallAlertView(invitation, chatModel)
     AlertManager.shared.showInView()
+    if (vibeStyle) VibeLaunchOverlay()
 
     LaunchedEffect(Unit) {
       delay(1000)

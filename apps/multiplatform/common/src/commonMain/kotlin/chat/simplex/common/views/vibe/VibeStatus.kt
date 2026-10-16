@@ -62,6 +62,24 @@ object VibeStatus {
     withBGApi { save(user, null, VibeStatus.timeZoneOf(user.profile.description) != null) }
   }
 
+  /**
+   * Your local time is shared unless you turned it off: adds (or updates,
+   * after travelling) the time zone line once the chat is running.
+   */
+  fun ensureTimeShared() {
+    if (appPreferences.vibeShareTimeOff.get()) return
+    withBGApi {
+      // wait for the chat to start, at most a minute
+      var waited = 0
+      while (chatModel.chatRunning.value != true && waited < 60) { kotlinx.coroutines.delay(1000); waited++ }
+      if (chatModel.chatRunning.value != true) return@withBGApi
+      val user = chatModel.currentUser.value ?: return@withBGApi
+      val here = java.util.TimeZone.getDefault().id
+      if (timeZoneOf(user.profile.description) == here) return@withBGApi
+      runCatching { save(user, user.profile.shortDescr, true) }
+    }
+  }
+
   private suspend fun save(user: User, status: String?, shareTime: Boolean): Boolean {
     val p = user.profile.toProfile()
     val bio = bioOf(p.description)
@@ -85,7 +103,8 @@ object VibeStatus {
     val user = chatModel.currentUser.value ?: return
     var text by remember { mutableStateOf(user.profile.shortDescr ?: "") }
     var clear by remember { mutableStateOf(0L) }
-    var share by remember { mutableStateOf(timeZoneOf(user.profile.description) != null) }
+    // on unless you turned it off
+    var share by remember { mutableStateOf(timeZoneOf(user.profile.description) != null || !appPreferences.vibeShareTimeOff.get()) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
@@ -135,6 +154,7 @@ object VibeStatus {
             val ok = withContext(Dispatchers.IO) { runCatching { save(user, text, share) }.getOrDefault(false) }
             busy = false
             if (ok) {
+              appPreferences.vibeShareTimeOff.set(!share)
               val until = when {
                 text.isBlank() || clear == 0L -> 0L
                 clear == -1L -> Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59) }.timeInMillis

@@ -68,7 +68,7 @@ object VibeSheets {
 }
 
 private val openSpec = VibeSprings.sheet<Float>()
-private val closeSpec = tween<Float>(220, easing = CubicBezierEasing(0.32f, 0f, 0.67f, 0f))
+private val closeSpec = tween<Float>(280, easing = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f))
 
 @Composable
 fun VibeSheetHost() {
@@ -156,7 +156,8 @@ private fun SheetView(e: VibeSheets.Entry) {
       Modifier
         .align(Alignment.BottomCenter)
         .fillMaxWidth()
-        .heightIn(max = with(density) { (screenH * e.maxHeight).toDp() })
+        // a full-height pane covers the whole screen, status bar included
+        .then(if (e.maxHeight >= 1f) Modifier.fillMaxHeight() else Modifier.heightIn(max = with(density) { (screenH * e.maxHeight).toDp() }))
         .onSizeChanged { heightPx = it.height.toFloat() }
         .graphicsLayer {
           val h = if (heightPx > 0f) heightPx else screenH
@@ -209,7 +210,7 @@ fun vibePageUp(): androidx.compose.animation.ContentTransform =
 /** A page closing: it slides down and the one under it comes forward again. */
 fun vibePageDown(): androidx.compose.animation.ContentTransform =
   ((androidx.compose.animation.scaleIn(VibeSprings.page(), initialScale = 0.94f) + androidx.compose.animation.fadeIn(tween(220), initialAlpha = 0.4f)) togetherWith
-    androidx.compose.animation.slideOutVertically(tween(260, easing = CubicBezierEasing(0.32f, 0f, 0.67f, 0f))) { it })
+    androidx.compose.animation.slideOutVertically(tween(300, easing = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f))) { it })
     .apply { targetContentZIndex = -1f }
 
 /**

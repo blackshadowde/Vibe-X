@@ -165,16 +165,16 @@ fun getThemeFromUri(uri: URI, withAlertOnException: Boolean = true): ThemeOverri
   return null
 }
 
-fun saveImage(uri: URI): CryptoFile? {
+fun saveImage(uri: URI, maxDataSize: Long = MAX_IMAGE_SIZE): CryptoFile? {
   val bitmap = getBitmapFromUri(uri) ?: return null
-  return saveImage(bitmap)
+  return saveImage(bitmap, maxDataSize)
 }
 
-fun saveImage(image: ImageBitmap): CryptoFile? {
+fun saveImage(image: ImageBitmap, maxDataSize: Long = MAX_IMAGE_SIZE): CryptoFile? {
   return try {
     val encrypted = chatController.appPrefs.privacyEncryptLocalFiles.get()
     val ext = if (image.hasAlpha()) "png" else "jpg"
-    val dataResized = resizeImageToDataSize(image, ext == "png", maxDataSize = MAX_IMAGE_SIZE)
+    val dataResized = resizeImageToDataSize(image, ext == "png", maxDataSize = maxDataSize)
     val destFileName = generateNewFileName("IMG", ext, File(getAppFilePath("")))
     val destFile = File(getAppFilePath(destFileName))
     if (encrypted) {

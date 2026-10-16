@@ -691,6 +691,7 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
   // a quiet look for a new Vibe X now and then (at most every 6 hours)
   LaunchedEffect(Unit) {
     VibeStatus.clearIfExpired()
+    VibeStatus.ensureTimeShared()
     VibeScheduled.start()
     VibeCrash.checkOnStart()
     VibeUpdater.maybeShowWhatsNew()

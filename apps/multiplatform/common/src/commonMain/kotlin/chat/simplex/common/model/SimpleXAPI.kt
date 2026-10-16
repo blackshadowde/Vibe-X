@@ -208,6 +208,8 @@ class AppPreferences {
   val vibeMissedCalls = mkStrPreference("VibeMissedCalls", null)
   val vibeStatusClearAt = mkLongPreference("VibeStatusClearAt", 0L)
   val vibeSeenBuild = mkIntPreference("VibeSeenBuild", 0)
+  val vibeShareTimeOff = mkBoolPreference("VibeShareTimeOff", false)
+  val vibeSendHd = mkBoolPreference("VibeSendHd", false)
   val signMessageAlertShown = mkBoolPreference(SHARED_PREFS_SIGN_MESSAGE_ALERT_SHOWN, false)
   val showHiddenProfilesNotice = mkBoolPreference(SHARED_PREFS_SHOW_HIDDEN_PROFILES_NOTICE, true)
   val oneHandUICardShown = mkBoolPreference(SHARED_PREFS_ONE_HAND_UI_CARD_SHOWN, false)
@@ -2945,7 +2947,7 @@ object ChatController {
             appPrefs.privacyAcceptImages.get() &&
             // Vibe X low data mode: photos and videos load when you tap them
             !(chat.simplex.common.views.vibe.vibeStyle && appPrefs.vibeLowData.get() && mc !is MsgContent.MCVoice) &&
-            ((mc is MsgContent.MCImage && file.fileSize <= MAX_IMAGE_SIZE_AUTO_RCV)
+            ((mc is MsgContent.MCImage && file.fileSize <= (if (chat.simplex.common.views.vibe.vibeStyle) chat.simplex.common.views.vibe.VIBE_HD_IMAGE_SIZE else MAX_IMAGE_SIZE_AUTO_RCV))
                 || (mc is MsgContent.MCVideo && file.fileSize <= MAX_VIDEO_SIZE_AUTO_RCV)
                 || (mc is MsgContent.MCVoice && file.fileSize <= MAX_VOICE_SIZE_AUTO_RCV && file.fileStatus !is CIFileStatus.RcvAccepted))
           ) {

@@ -110,9 +110,18 @@ object VibeEffects {
 
   /** Play the effect of a message that just arrived (or was just sent), once. */
   fun maybePlay(item: ChatItem) {
+    if (item.meta.isLive || item.id < 0) return
+    val effect = VibeEffect.of(item.content.text)
+    if (effect == null) {
+      // hot words (hahaha, congrats, kiss, hug, party…) fill the screen, yours and theirs, once
+      val scene = runCatching { VibeHotWords.match(item.content.text) }.getOrNull() ?: return
+      if ((kotlinx.datetime.Clock.System.now() - item.meta.updatedAt).inWholeSeconds > 20) return
+      if (synchronized(played) { !played.add(item.id) }) return
+      VibeScreenFx.play(scene)
+      return
+    }
     // your own effects play when you send them
-    if (item.meta.isLive || item.id < 0 || item.chatDir.sent) return
-    val effect = VibeEffect.of(item.content.text) ?: return
+    if (item.chatDir.sent) return
     // a live message is created when typing starts, so go by its last update
     if ((kotlinx.datetime.Clock.System.now() - item.meta.updatedAt).inWholeSeconds > 30) return
     if (synchronized(played) { !played.add(item.id) }) return

@@ -211,7 +211,9 @@ class ModalManager(private val placement: ModalPlacement? = null) {
       transitionSpec = {
         if (vibe) {
           // Vibe X: pages slide up from the bottom and go back down
-          if (targetState > initialState) chat.simplex.common.views.vibe.vibePageUp() else chat.simplex.common.views.vibe.vibePageDown()
+          // (size snaps, so the first page doesn't grow out of a corner and the last doesn't shrink into one)
+          (if (targetState > initialState) chat.simplex.common.views.vibe.vibePageUp() else chat.simplex.common.views.vibe.vibePageDown())
+            .using(SizeTransform(clip = false) { _, _ -> snap() })
         } else if (targetState > initialState) {
           fromEndToStartTransition()
         } else {

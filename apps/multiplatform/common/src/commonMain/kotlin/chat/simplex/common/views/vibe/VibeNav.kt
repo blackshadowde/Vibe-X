@@ -24,6 +24,25 @@ object VibeNav {
 
   /** A finger is moving the chat in or out right now. */
   val dragging = mutableStateOf(false)
+
+  /**
+   * Opening the app fresh (from the launcher, after clearing it from
+   * recents) starts on Home, not on whatever screen was open last time:
+   * the process can outlive the screen because of the background service.
+   */
+  fun freshStart() {
+    if (!vibeStyle) return
+    runCatching {
+      VibeSheets.stack.clear()
+      VibeMediaSend.req.value = null
+      chat.simplex.common.views.helpers.ModalManager.closeAllModalsEverywhere()
+      VibeRail.selected.value = null
+      infoFor = null
+      back = null
+      chat.simplex.common.platform.chatModel.chatId.value = null
+      VibeLaunch.pending.value = true
+    }
+  }
 }
 
 /**
