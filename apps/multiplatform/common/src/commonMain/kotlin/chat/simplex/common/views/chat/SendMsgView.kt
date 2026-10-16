@@ -703,7 +703,8 @@ private fun startLiveMessage(
     }
     scope.launch {
       // Vibe X sends the live text more often, so typing looks live on the other side
-      val every = if (vibeStyle) 450L else 3000L
+      // (about once a second: more often only queues up on the servers and arrives late)
+      val every = if (vibeStyle) 900L else 3000L
       delay(every)
       while (composeState.value.liveMessage != null) {
         update()

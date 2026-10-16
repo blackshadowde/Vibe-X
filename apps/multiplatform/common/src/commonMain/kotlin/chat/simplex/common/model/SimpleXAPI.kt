@@ -212,6 +212,7 @@ class AppPreferences {
   val vibeSendHd = mkBoolPreference("VibeSendHd", false)
   val vibeBackupUri = mkStrPreference("VibeBackupUri", null)
   val vibeMyHdKey = mkStrPreference("VibeMyHdKey", null)
+  val vibeLinksAsked = mkBoolPreference("VibeLinksAsked", false)
   val vibeBackupEvery = mkIntPreference("VibeBackupEvery", 0)
   val vibeBackupWifi = mkBoolPreference("VibeBackupWifi", true)
   val vibeBackupLast = mkLongPreference("VibeBackupLast", 0L)

@@ -124,6 +124,7 @@ fun SettingsLayout(
         }
         SettingsActionItem(painterResource(MR.images.ic_chat_bubble), chat.simplex.common.views.vibe.vt("Chat"), showSettingsModal { chat.simplex.common.views.vibe.VibeChatSettingsView() })
         SettingsActionItem(painterResource(MR.images.ic_backup), chat.simplex.common.views.vibe.vt("Chat backup"), showSettingsModal { chat.simplex.common.views.vibe.VibeBackupView() })
+        SettingsActionItem(painterResource(MR.images.ic_link), chat.simplex.common.views.vibe.vt("Open invitation links in Vibe X"), { chat.simplex.common.views.vibe.VibeOpenLinks.show() })
         SettingsActionItem(painterResource(MR.images.ic_info), chat.simplex.common.views.vibe.vt("About Vibe X"), showSettingsModal { chat.simplex.common.views.vibe.VibeAboutView() })
         SettingsActionItem(painterResource(MR.images.ic_logout), chat.simplex.common.views.vibe.vt("Log out"), { chat.simplex.common.views.vibe.VibeAccount.showLogOut() }, textColor = chat.simplex.common.views.vibe.VibeColors.red, iconColor = chat.simplex.common.views.vibe.VibeColors.red, disabled = stopped && chatModel.currentUser.value == null)
         SettingsActionItem(painterResource(MR.images.ic_heart), chat.simplex.common.views.vibe.vt("Support Vibe X"), showSettingsModal { chat.simplex.common.views.vibe.VibeSupportView() }, textColor = chat.simplex.common.views.vibe.VibeColors.blurple, iconColor = chat.simplex.common.views.vibe.VibeColors.red)

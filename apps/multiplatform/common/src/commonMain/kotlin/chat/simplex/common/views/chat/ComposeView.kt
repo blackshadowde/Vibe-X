@@ -756,8 +756,9 @@ fun ComposeView(
 
     fun updateMsgContent(msgContent: MsgContent): MsgContent {
       return when (msgContent) {
-        is MsgContent.MCText -> checkLinkPreview(cs)
-        is MsgContent.MCLink -> checkLinkPreview(cs)
+        // a live update sends what it was given (typing dots, or whole words so far), not everything typed
+        is MsgContent.MCText -> if (msgText != cs.message.text) MsgContent.MCText(msgText) else checkLinkPreview(cs)
+        is MsgContent.MCLink -> if (msgText != cs.message.text) MsgContent.MCText(msgText) else checkLinkPreview(cs)
         is MsgContent.MCImage -> MsgContent.MCImage(msgText, image = msgContent.image)
         is MsgContent.MCVideo -> MsgContent.MCVideo(msgText, image = msgContent.image, duration = msgContent.duration)
         is MsgContent.MCVoice -> MsgContent.MCVoice(msgText, duration = msgContent.duration)

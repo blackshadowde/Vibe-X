@@ -710,6 +710,8 @@ private fun VibeUserBar(userPickerState: MutableStateFlow<AnimatedViewState>, mo
     // after the update check, so the two never stack
     kotlinx.coroutines.delay(4000)
     VibeSupport.maybeAsk()
+    kotlinx.coroutines.delay(2000)
+    if (VibeSheets.stack.isEmpty()) runCatching { VibeOpenLinks.maybeAsk() }
   }
   val status = when (running) {
     true -> user.profile.shortDescr?.takeIf { it.isNotBlank() } ?: vt("Online")
