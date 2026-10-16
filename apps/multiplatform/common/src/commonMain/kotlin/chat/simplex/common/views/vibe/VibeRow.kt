@@ -172,7 +172,7 @@ fun vibeEndsBlock(item: ChatItem, newer: ChatItem?): Boolean =
   newer == null || !newer.isVibeRow() || newer.vibeHidden() || newer.vibeTypingDots() || newer.quotedItem != null || vibeStartsBlock(newer, item)
 
 /** Items Vibe doesn't show (the intro at the top says it once). */
-fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLiveDummy)) || (meta.isLive && (content.text.isBlank() || meta.itemDeleted != null))) true else when (content) {
+fun ChatItem.vibeHidden(): Boolean = if ((chatDir.sent && (meta.isLive || isLiveDummy)) || (meta.isLive && (content.text.isBlank() || meta.itemDeleted != null)) || vibeInvisible()) true else when (content) {
   is CIContent.SndDirectE2EEInfo, is CIContent.RcvDirectE2EEInfo,
   is CIContent.SndGroupE2EEInfo, is CIContent.RcvGroupE2EEInfo,
   is CIContent.RcvChatFeature, is CIContent.SndChatFeature,
@@ -204,4 +204,18 @@ fun VibeTypingRow(chatInfo: ChatInfo, item: ChatItem) {
     Spacer(Modifier.width(8.dp))
     VibeTypingDots()
   }
+}
+
+private val invisibleChars = Regex("[\\s\\u200B-\\u200F\\u2060-\\u2064\\uFEFF]")
+
+/**
+ * A text message with nothing to see: a typing-dots marker or an effect mark
+ * that was left behind (it would show as a message with only ticks).
+ */
+fun ChatItem.vibeInvisible(): Boolean {
+  // a live one is someone typing right now: that shows as the typing dots
+  if (meta.isLive || file != null || quotedItem != null) return false
+  val mc = content.msgContent as? MsgContent.MCText ?: return false
+  val raw = mc.text
+  return raw.isNotEmpty() && raw.replace(invisibleChars, "").isEmpty()
 }

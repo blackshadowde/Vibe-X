@@ -272,9 +272,10 @@ fun VibeTicks(ci: ChatItem, modifier: Modifier = Modifier) {
   if (!ci.chatDir.sent) return
   val dim = VibeColors.onVariant()
   when (val s = ci.meta.itemStatus) {
-    is CIStatus.SndNew -> Text(if (ci.meta.isLive) "" else "Sending…", modifier, fontSize = 12.sp, color = dim)
-    is CIStatus.SndSent -> Icon(VibeIcons.Done, null, modifier.size(18.dp), tint = dim)
-    is CIStatus.SndRcvd -> Icon(VibeIcons.DoneAll, null, modifier.size(18.dp), tint = VibeColors.blurple)
+    // dots instead of ticks: one while it goes out, one grey once sent, two grey once on their phone
+    is CIStatus.SndNew -> if (!ci.meta.isLive) VibeStatusDots(1, dim, modifier, pulsing = true)
+    is CIStatus.SndSent -> VibeStatusDots(1, dim, modifier)
+    is CIStatus.SndRcvd -> VibeStatusDots(2, dim, modifier)
     is CIStatus.SndErrorAuth, is CIStatus.CISSndError -> Row(modifier, verticalAlignment = Alignment.CenterVertically) {
       Icon(VibeIcons.Error, null, Modifier.size(16.dp), tint = VibeColors.red)
       Spacer(Modifier.width(4.dp))
@@ -324,5 +325,26 @@ fun VibeLiveToggle() {
     contentAlignment = Alignment.Center
   ) {
     Icon(VibeIcons.Bolt, vt("Live typing"), Modifier.size(22.dp).graphicsLayer { scaleX = scale.value; scaleY = scale.value }, tint = tint)
+  }
+}
+
+/** Message status as small dots (sent, delivered); a new dot pops in with a spring. */
+@Composable
+fun VibeStatusDots(count: Int, color: Color, modifier: Modifier = Modifier, pulsing: Boolean = false) {
+  val alpha = if (pulsing) {
+    val inf = rememberInfiniteTransition(label = "sending")
+    inf.animateFloat(0.25f, 0.8f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "a").value
+  } else 1f
+  Row(modifier.height(16.dp), verticalAlignment = Alignment.CenterVertically) {
+    for (i in 0 until 3) {
+      val shown by animateFloatAsState(if (i < count) 1f else 0f, VibeSprings.pop(), label = "dot$i")
+      if (shown > 0.01f) {
+        Box(
+          Modifier.padding(start = if (i == 0) 0.dp else 2.5.dp).size(5.dp)
+            .graphicsLayer { scaleX = shown; scaleY = shown; this.alpha = alpha * shown.coerceIn(0f, 1f) }
+            .clip(CircleShape).background(color)
+        )
+      }
+    }
   }
 }
