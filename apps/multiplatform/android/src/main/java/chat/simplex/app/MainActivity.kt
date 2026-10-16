@@ -57,6 +57,12 @@ class MainActivity: FragmentActivity() {
     }
     enableEdgeToEdge()
     preferHighRefreshRate()
+    // Vibe X: top bars always (SimpleX's one-hand bottom layout is off, and its switch is hidden)
+    if (chat.simplex.common.views.vibe.vibeStyle) {
+      if (ChatController.appPrefs.oneHandUI.get()) ChatController.appPrefs.oneHandUI.set(false)
+      if (!ChatController.appPrefs.oneHandUICardShown.get()) ChatController.appPrefs.oneHandUICardShown.set(true)
+      if (!ChatController.appPrefs.chatBottomBar.get()) ChatController.appPrefs.chatBottomBar.set(true)
+    }
     setContent {
       AppScreen()
     }

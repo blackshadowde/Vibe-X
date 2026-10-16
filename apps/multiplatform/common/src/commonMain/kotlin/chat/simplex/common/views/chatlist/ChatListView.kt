@@ -1007,7 +1007,7 @@ private fun BoxScope.ChatList(searchText: MutableState<TextFieldValue>, listStat
         }
       }
     }
-    if (!oneHandUICardShown.value) {
+    if (!oneHandUICardShown.value && !chat.simplex.common.views.vibe.vibeStyle) {
       item {
         ToggleChatListCard()
       }

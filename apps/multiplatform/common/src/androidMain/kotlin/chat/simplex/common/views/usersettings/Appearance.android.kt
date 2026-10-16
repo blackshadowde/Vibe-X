@@ -105,10 +105,11 @@ fun AppearanceScope.AppearanceLayout(
       }
       //      }
 
-      SettingsPreferenceItem(icon = null, stringResource(MR.strings.one_hand_ui), ChatModel.controller.appPrefs.oneHandUI) { enabled ->
+      // Vibe X: the bars stay at the top; no switch for it
+      if (!chat.simplex.common.views.vibe.vibeStyle) SettingsPreferenceItem(icon = null, stringResource(MR.strings.one_hand_ui), ChatModel.controller.appPrefs.oneHandUI) { enabled ->
         if (enabled) appPrefs.chatBottomBar.set(true)
       }
-      if (remember { appPrefs.oneHandUI.state }.value) {
+      if (!chat.simplex.common.views.vibe.vibeStyle && remember { appPrefs.oneHandUI.state }.value) {
         SettingsPreferenceItem(icon = null, stringResource(MR.strings.chat_bottom_bar), ChatModel.controller.appPrefs.chatBottomBar)
       }
     }
