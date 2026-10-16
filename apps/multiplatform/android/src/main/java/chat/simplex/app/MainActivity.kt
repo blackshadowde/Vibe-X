@@ -73,6 +73,8 @@ class MainActivity: FragmentActivity() {
   override fun onResume() {
     super.onResume()
     preferHighRefreshRate()
+    // Vibe X: a newer version pops up by itself when you come back to the app
+    if (chat.simplex.common.views.vibe.vibeStyle) runCatching { chat.simplex.common.views.vibe.VibeUpdater.onAppOpen() }
     AppLock.recheckAuthState()
   }
 

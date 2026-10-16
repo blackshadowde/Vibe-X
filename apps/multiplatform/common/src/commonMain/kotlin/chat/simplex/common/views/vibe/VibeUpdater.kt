@@ -52,7 +52,7 @@ object VibeUpdater {
   const val REPO = "blackshadowde/Vibe-X"
   const val RELEASES_URL = "https://github.com/$REPO/releases"
   private const val API = "https://api.github.com/repos/$REPO/releases/latest"
-  private const val CHECK_EVERY_MS = 6 * 60 * 60 * 1000L
+  private const val CHECK_EVERY_MS = 60 * 60 * 1000L
 
   /** This app's version and build. */
   val version: String get() = BuildConfigCommon.ANDROID_VERSION_NAME
@@ -112,21 +112,46 @@ object VibeUpdater {
     }
   }
 
-  /** Quiet check when the app opens: at most every 6 hours; shows the update unless you said Later. */
-  fun maybeCheck() {
+  /** The update pane is open right now. */
+  val sheetOpen = mutableStateOf(false)
+  @Volatile private var lastShownAt = 0L
+  @Volatile private var opening = false
+
+  /** Kept for the home screen's first launch. */
+  fun maybeCheck() = onAppOpen()
+
+  /**
+   * Every time you open the app: asks GitHub (at most once an hour) and pops
+   * the update pane up by itself when there's a newer Vibe X, unless you
+   * tapped Later for it today. Never twice within half an hour.
+   */
+  fun onAppOpen() {
     if (!vibeCanSelfUpdate) return
     load()
-    val now = System.currentTimeMillis()
-    if (now - appPreferences.vibeUpdateCheckedAt.get() < CHECK_EVERY_MS) return
+    if (appPreferences.onboardingStage.get() != chat.simplex.common.views.onboarding.OnboardingStage.OnboardingComplete) return
+    if (opening) return
+    opening = true
     scope.launch {
       try {
-        val r = refresh() ?: return@launch
+        val now = System.currentTimeMillis()
+        val r = (if (now - appPreferences.vibeUpdateCheckedAt.get() >= CHECK_EVERY_MS) refresh() else pending.value) ?: return@launch
+        if (!isNewer(r)) return@launch
         val laterTag = appPreferences.vibeUpdateLaterTag.get()
         if (laterTag == r.tag && System.currentTimeMillis() < appPreferences.vibeUpdateLaterUntil.get()) return@launch
-        withContext(Dispatchers.Main) { showSheet(r) }
+        if (System.currentTimeMillis() - lastShownAt < 30 * 60 * 1000L || sheetOpen.value) return@launch
+        // after the opening animation has played
+        delay(1800)
+        withContext(Dispatchers.Main) {
+          if (!sheetOpen.value) {
+            lastShownAt = System.currentTimeMillis()
+            showSheet(r)
+          }
+        }
       } catch (e: Throwable) {
         if (e is CancellationException) throw e
         Log.w(TAG, "Vibe update check failed: ${e.message}")
+      } finally {
+        opening = false
       }
     }
   }
@@ -143,7 +168,11 @@ object VibeUpdater {
       stage.value = Stage.Info
       error.value = null
     }
-    VibeSheets.show { close -> VibeUpdateSheet(r, close) }
+    sheetOpen.value = true
+    VibeSheets.show { close ->
+      androidx.compose.runtime.DisposableEffect(Unit) { onDispose { sheetOpen.value = false } }
+      VibeUpdateSheet(r, close)
+    }
   }
 
   fun startDownload(r: VibeRelease) {
@@ -242,7 +271,7 @@ object VibeUpdater {
 
   private fun fetchNotes(tag: String): List<String>? {
     val c = open("https://api.github.com/repos/$REPO/releases/tags/$tag")
-    c.setRequestProperty(vt("Accept"), "application/vnd.github+json")
+    c.setRequestProperty("Accept", "application/vnd.github+json")
     try {
       if (c.responseCode == 404) return null
       if (c.responseCode != 200) throw Exception("GitHub answered ${c.responseCode}")
@@ -273,7 +302,7 @@ object VibeUpdater {
 
   private fun fetchLatest(): VibeRelease? {
     val c = open(API)
-    c.setRequestProperty(vt("Accept"), "application/vnd.github+json")
+    c.setRequestProperty("Accept", "application/vnd.github+json")
     val body = try {
       if (c.responseCode == 404) return null // no release yet
       if (c.responseCode != 200) throw Exception("GitHub answered ${c.responseCode}")
